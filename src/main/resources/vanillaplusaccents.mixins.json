@@ -1,0 +1,23 @@
+{
+	"required": true,
+	"package": "net.berkle.vanillaplusaccents.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"BlockEntityMixin",
+		"ItemFrameEntityMixin",
+		"SignBlockEntityMixin",
+		"SignBlockMixin",
+		"PlayerPassengerOffsetMixin",
+		"PlayerSeatDismountMixin"
+	],
+	"client": [
+		"client.ItemFrameRendererMixin",
+		"client.AbstractSignRendererMixin",
+		"client.SignRenderStateMixin",
+		"client.ClientLevelFlowerPatchMixin",
+		"client.LocalPlayerSeatLookMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

@@ -1,0 +1,30 @@
+{
+	"schemaVersion": 1,
+	"id": "vanillaplusaccents",
+	"version": "${version}",
+	"name": "Vanilla Plus Accents",
+	"description": "Small vanilla-friendly quality-of-life accents: invisible item frames, sign item displays, fence leads, sitting, piggyback rides, and stacked flower patches.",
+	"authors": [
+		"Berkle"
+	],
+	"license": "CC0-1.0",
+	"icon": "assets/vanillaplusaccents/icon.png",
+	"environment": "*",
+	"mixins": [
+		"vanillaplusaccents.mixins.json"
+	],
+	"entrypoints": {
+		"main": [
+			"net.berkle.vanillaplusaccents.VanillaPlusAccentsMain"
+		],
+		"client": [
+			"net.berkle.vanillaplusaccents.client.VanillaPlusAccentsClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": "~26.1.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
