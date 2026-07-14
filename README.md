@@ -6,7 +6,7 @@
 
 Small vanilla-friendly quality-of-life accents for Minecraft **Java Edition 26.1.2** (Fabric).
 
-![Flower patches and seating by the water](docs/images/flower-patches-and-seating.png)
+![Flower patches, seating, and fence leads](docs/images/accents-overview.png)
 
 ## Features
 
@@ -41,7 +41,7 @@ A fence can hold many links. New ropes only start when you click with a lead aga
 
 Stack matching small flowers or mushrooms up to **4 per block** with natural askew placement. Bonemeal a single plant to start a patch of 2.
 
-![Flower patches, seating, and fence leads](docs/images/accents-overview.png)
+![Flower patches and seating by the water](docs/images/flower-patches-and-seating.png)
 
 ## Requirements
 
