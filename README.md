@@ -1,3 +1,7 @@
+<p align="center">
+  <img alt="Vanilla Plus Accents mod icon" width="128" src="docs/images/icon.png" />
+</p>
+
 # Vanilla Plus Accents
 
 Small vanilla-friendly quality-of-life accents for Minecraft **Java Edition 26.1.2** (Fabric).
