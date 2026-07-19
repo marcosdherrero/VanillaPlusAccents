@@ -45,7 +45,7 @@ public final class AccentClientInteraction {
 		if (!level.isClientSide() || hand != InteractionHand.MAIN_HAND || !accentModifiersActive()) {
 			return InteractionResult.PASS;
 		}
-		if (!(entity instanceof Player)) {
+		if (!(entity instanceof Player) || !player.getMainHandItem().isEmpty()) {
 			return InteractionResult.PASS;
 		}
 

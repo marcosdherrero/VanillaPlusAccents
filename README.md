@@ -34,8 +34,8 @@ A fence can hold many links. New ropes only start when you click with a lead aga
 
 ### Sitting & piggyback
 
-- **Sit:** empty hand + Shift+right-click a slab or stair (needs 2 blocks of headroom). Shift again to stand.
-- **Piggyback:** Ctrl+Shift+right-click another player to ride on their shoulders.
+- **Sit:** empty hand + Shift+right-click a slab or upright stair (needs 2 blocks of headroom). Upside-down stairs are not seats. Shift again to stand.
+- **Piggyback:** empty hand + Ctrl+Shift+right-click another player to ride on their shoulders. Release Shift once after mounting, then Shift again to dismount. **Stacks:** a player who already has someone on their back can still mount another player (A on B, then B mounts C), and others can mount the top of a stack (C mounts A).
 
 ### Flower patches
 
@@ -58,7 +58,7 @@ Stack matching small flowers or mushrooms up to **4 per block** with natural ask
 2. Drop [Fabric API](https://modrinth.com/mod/fabric-api) into your `mods` folder
 3. Drop the release jar from [`jars/`](jars/) into `mods`
 
-Current release: [`jars/vanillaplusaccents-1.0.0-Minecraft26.1.2.jar`](jars/vanillaplusaccents-1.0.0-Minecraft26.1.2.jar)
+Current release: [`jars/vanillaplusaccents-1.0.1-Minecraft26.1.2.jar`](jars/vanillaplusaccents-1.0.1-Minecraft26.1.2.jar)
 
 ## Build
 
@@ -66,12 +66,12 @@ Current release: [`jars/vanillaplusaccents-1.0.0-Minecraft26.1.2.jar`](jars/vani
 ./gradlew build
 ```
 
-Output: `build/libs/vanillaplusaccents-1.0.0-Minecraft26.1.2.jar`
+Output: `build/libs/vanillaplusaccents-1.0.1-Minecraft26.1.2.jar`
 
 Copy a release into `jars/` when publishing:
 
 ```powershell
-Copy-Item build\libs\vanillaplusaccents-1.0.0-Minecraft26.1.2.jar jars\ -Force
+Copy-Item build\libs\vanillaplusaccents-1.0.1-Minecraft26.1.2.jar jars\ -Force
 ```
 
 ## License

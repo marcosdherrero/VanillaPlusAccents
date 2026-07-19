@@ -8,6 +8,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.minecraft.world.entity.player.Player;
 
 import net.berkle.vanillaplusaccents.seat.SeatEntity;
+import net.berkle.vanillaplusaccents.seat.PiggybackHandler;
 
 /**
  * Sitting starts while Shift is held; vanilla would immediately dismount via
@@ -20,6 +21,10 @@ public abstract class PlayerSeatDismountMixin {
 	private void vpa$seatSneakGrace(CallbackInfoReturnable<Boolean> cir) {
 		Player self = (Player) (Object) this;
 		if (self.getVehicle() instanceof SeatEntity seat && !seat.allowsSneakDismount()) {
+			cir.setReturnValue(false);
+			return;
+		}
+		if (PiggybackHandler.blocksSneakDismount(self)) {
 			cir.setReturnValue(false);
 		}
 	}

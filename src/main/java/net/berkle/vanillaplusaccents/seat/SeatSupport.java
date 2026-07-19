@@ -26,7 +26,13 @@ public final class SeatSupport {
 	}
 
 	public static boolean isSeatBlock(BlockState state) {
-		return state.getBlock() instanceof SlabBlock || state.getBlock() instanceof StairBlock;
+		if (state.getBlock() instanceof SlabBlock) {
+			return true;
+		}
+		if (state.getBlock() instanceof StairBlock) {
+			return state.getValue(StairBlock.HALF) == Half.BOTTOM;
+		}
+		return false;
 	}
 
 	public static boolean hasHeadroom(net.minecraft.world.level.Level level, BlockPos seatBlock) {
@@ -86,9 +92,6 @@ public final class SeatSupport {
 			};
 		}
 		if (state.getBlock() instanceof StairBlock) {
-			if (state.getValue(StairBlock.HALF) == Half.TOP) {
-				return 1.0;
-			}
 			return 0.5;
 		}
 		VoxelShape shape = state.getCollisionShape(level, pos);
