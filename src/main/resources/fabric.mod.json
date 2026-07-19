@@ -3,7 +3,7 @@
 	"id": "vanillaplusaccents",
 	"version": "${version}",
 	"name": "Vanilla Plus Accents",
-	"description": "Small vanilla-friendly quality-of-life accents: invisible item frames, sign item displays, fence leads, sitting, piggyback rides, and stacked flower patches.",
+	"description": "Small vanilla-friendly quality-of-life accents: invisible item frames, sign item displays, fence leads, sitting, piggyback rides, flower patches, dirt-path speed, stonecutter woodcutting, and operator Enderman/Creeper grief toggles.",
 	"authors": [
 		"Berkle"
 	],

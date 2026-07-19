@@ -9,7 +9,10 @@
 		"SignBlockMixin",
 		"PlayerPassengerOffsetMixin",
 		"PlayerSeatDismountMixin",
-		"EntityPiggybackRideMixin"
+		"EntityPiggybackRideMixin",
+		"EndermanTakeBlockGoalMixin",
+		"EndermanLeaveBlockGoalMixin",
+		"CreeperGriefMixin"
 	],
 	"client": [
 		"client.ItemFrameRendererMixin",

@@ -101,12 +101,15 @@ public final class FenceLeadSavedData extends SavedData {
 		return removed;
 	}
 
-	/** Drop links whose ends are no longer tagged fences. */
+	/** Drop links whose ends are no longer tagged fences. Skips unloaded chunks (no force-load). */
 	public boolean purgeInvalid(ServerLevel level, Identifier dimension) {
 		boolean changed = false;
 		for (Iterator<FenceLeadLink> iterator = links.iterator(); iterator.hasNext();) {
 			FenceLeadLink link = iterator.next();
 			if (!link.dimension().equals(dimension)) {
+				continue;
+			}
+			if (!isChunkLoaded(level, link.from()) || !isChunkLoaded(level, link.to())) {
 				continue;
 			}
 			if (!level.getBlockState(link.from()).is(BlockTags.FENCES)
@@ -119,6 +122,10 @@ public final class FenceLeadSavedData extends SavedData {
 			setDirty();
 		}
 		return changed;
+	}
+
+	private static boolean isChunkLoaded(ServerLevel level, BlockPos pos) {
+		return level.getChunkSource().getChunkNow(pos.getX() >> 4, pos.getZ() >> 4) != null;
 	}
 
 	public PendingLink getPending(UUID playerId) {

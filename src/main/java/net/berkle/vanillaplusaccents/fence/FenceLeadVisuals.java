@@ -52,11 +52,14 @@ public final class FenceLeadVisuals {
 				discardKnotsIfUnused(level, from, to);
 			} else {
 				matched.add(match);
-				ensureKnots(level, match.from(), match.to());
+				ensureKnotsIfLoaded(level, match.from(), match.to());
 			}
 		}
 
 		for (FenceLeadLink link : links) {
+			if (!isChunkLoaded(level, link.from()) || !isChunkLoaded(level, link.to())) {
+				continue;
+			}
 			if (!matched.contains(link)) {
 				spawnLink(level, link);
 			} else {
@@ -65,12 +68,22 @@ public final class FenceLeadVisuals {
 		}
 	}
 
-	/** Re-create knots for every saved link in this dimension. */
+	/** Re-create knots for saved links whose chunks are already loaded. */
 	public static void ensureAllKnots(ServerLevel level) {
 		Identifier dimension = level.dimension().identifier();
 		for (FenceLeadLink link : FenceLeadSavedData.get(level).linksFor(dimension)) {
-			ensureKnots(level, link.from(), link.to());
+			ensureKnotsIfLoaded(level, link.from(), link.to());
 		}
+	}
+
+	private static void ensureKnotsIfLoaded(ServerLevel level, BlockPos a, BlockPos b) {
+		if (isChunkLoaded(level, a) && isChunkLoaded(level, b)) {
+			ensureKnots(level, a, b);
+		}
+	}
+
+	private static boolean isChunkLoaded(ServerLevel level, BlockPos pos) {
+		return level.getChunkSource().getChunkNow(pos.getX() >> 4, pos.getZ() >> 4) != null;
 	}
 
 	public static FenceLeadEntity spawnPending(ServerLevel level, ServerPlayer player, BlockPos fence) {

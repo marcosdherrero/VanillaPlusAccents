@@ -7,12 +7,13 @@ import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 
 import net.berkle.vanillaplusaccents.fence.FenceLeadHandler;
-import net.berkle.vanillaplusaccents.fence.FenceLeadVisuals;
 import net.berkle.vanillaplusaccents.flower.FlowerPatchHandler;
 import net.berkle.vanillaplusaccents.itemframe.InvisibleFrameHandler;
+import net.berkle.vanillaplusaccents.ghast.HappyGhastSpeedHandler;
+import net.berkle.vanillaplusaccents.path.PathSpeedHandler;
 import net.berkle.vanillaplusaccents.seat.PiggybackHandler;
 import net.berkle.vanillaplusaccents.seat.SeatHandler;
 import net.berkle.vanillaplusaccents.sign.SignItemDisplayHandler;
@@ -24,15 +25,18 @@ public final class ModInteractionEvents {
 	}
 
 	public static void register() {
-		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-			for (ServerLevel serverLevel : server.getAllLevels()) {
-				FenceLeadHandler.purgeAndSync(serverLevel);
-			}
+		// Login-stall diagnosis: skip fence-lead sync / knot ensure until join is stable again.
+		// Re-enable after confirming players can finish the login handshake.
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			ServerPlayer player = handler.getPlayer();
+			PathSpeedHandler.clear(player);
+			HappyGhastSpeedHandler.clearPlayer(player);
 		});
 
-		ServerTickEvents.END_LEVEL_TICK.register(level -> {
-			if (level instanceof ServerLevel serverLevel && serverLevel.getGameTime() % 20L == 0L) {
-				FenceLeadVisuals.ensureAllKnots(serverLevel);
+		ServerTickEvents.END_SERVER_TICK.register(server -> {
+			for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+				PathSpeedHandler.tickPlayer(player);
+				HappyGhastSpeedHandler.tickPlayer(player);
 			}
 		});
 
