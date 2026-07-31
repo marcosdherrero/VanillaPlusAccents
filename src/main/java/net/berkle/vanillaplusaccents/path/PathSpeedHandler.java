@@ -47,25 +47,31 @@ public final class PathSpeedHandler {
 	}
 
 	private static void tickPath(ServerPlayer player, AttributeInstance speed, AccentSettingsSavedData settings) {
-		boolean onPath = isOn(player, Blocks.DIRT_PATH);
 		double factor = settings.getPathSpeed();
+		boolean disabled = Math.abs(factor - 1.0) < 1.0e-6;
+		boolean onPath = isOn(player, Blocks.DIRT_PATH);
+		boolean hasBoost = speed.getModifier(PATH_MODIFIER_ID) != null;
 
-		if (!onPath || Math.abs(factor - 1.0) < 1.0e-6) {
-			speed.removeModifier(PATH_MODIFIER_ID);
-		} else {
+		// Keep the boost through jumps / Slow Falling / Jump Boost; clear only once
+		// grounded on a non-path (or after leaving the path into water / flight / a vehicle).
+		boolean wantBoost = !disabled && (onPath || (hasBoost && shouldPersistPathBoost(player)));
+
+		if (wantBoost) {
 			speed.addOrUpdateTransientModifier(new AttributeModifier(
 				PATH_MODIFIER_ID,
 				factor - 1.0,
 				AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL
 			));
+		} else {
+			speed.removeModifier(PATH_MODIFIER_ID);
 		}
 
 		AttributeInstance step = player.getAttribute(Attributes.STEP_HEIGHT);
 		if (step == null) {
 			return;
 		}
-		// While on dirt path, walk up full blocks the way slabs auto-step.
-		if (onPath) {
+		// Step-up only matters while walking on path; do not keep it airborne.
+		if (onPath && !disabled) {
 			step.addOrUpdateTransientModifier(new AttributeModifier(
 				PATH_STEP_MODIFIER_ID,
 				PATH_STEP_HEIGHT_BONUS,
@@ -74,6 +80,25 @@ public final class PathSpeedHandler {
 		} else {
 			step.removeModifier(PATH_STEP_MODIFIER_ID);
 		}
+	}
+
+	/**
+	 * Persist an already-active path boost while the player is still "using" it mid-air.
+	 * Abort into fluids / flight / vehicles / ladders so the modifier cannot stick forever.
+	 */
+	private static boolean shouldPersistPathBoost(ServerPlayer player) {
+		if (player.onGround()) {
+			return false;
+		}
+		if (player.isPassenger()
+			|| player.getAbilities().flying
+			|| player.isFallFlying()
+			|| player.isInWater()
+			|| player.isInLava()
+			|| player.onClimbable()) {
+			return false;
+		}
+		return true;
 	}
 
 	private static void tickMud(ServerPlayer player, AttributeInstance speed, AccentSettingsSavedData settings) {
