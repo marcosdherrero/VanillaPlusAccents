@@ -19,7 +19,8 @@
 		"client.AbstractSignRendererMixin",
 		"client.SignRenderStateMixin",
 		"client.ClientLevelFlowerPatchMixin",
-		"client.LocalPlayerSeatLookMixin"
+		"client.LocalPlayerSeatLookMixin",
+		"client.AbstractClientPlayerFovMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -3,6 +3,7 @@ package net.berkle.vanillaplusaccents.path;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -22,6 +23,47 @@ public final class PathSpeedHandler {
 	private static final double PATH_STEP_HEIGHT_BONUS = 0.4;
 
 	private PathSpeedHandler() {
+	}
+
+	/**
+	 * {@link Attributes#MOVEMENT_SPEED} value for client FOV, excluding path/mud modifiers so those
+	 * speed changes do not zoom the camera. Sprint and other modifiers still apply.
+	 */
+	public static double movementSpeedForFov(LivingEntity entity) {
+		AttributeInstance speed = entity.getAttribute(Attributes.MOVEMENT_SPEED);
+		if (speed == null) {
+			return entity.getAttributeBaseValue(Attributes.MOVEMENT_SPEED);
+		}
+		if (!speed.hasModifier(PATH_MODIFIER_ID) && !speed.hasModifier(MUD_MODIFIER_ID)) {
+			return speed.getValue();
+		}
+
+		double afterAdd = speed.getBaseValue();
+		for (AttributeModifier modifier : speed.getModifiers()) {
+			if (isPathOrMudModifier(modifier) || modifier.operation() != AttributeModifier.Operation.ADD_VALUE) {
+				continue;
+			}
+			afterAdd += modifier.amount();
+		}
+
+		double value = afterAdd;
+		for (AttributeModifier modifier : speed.getModifiers()) {
+			if (isPathOrMudModifier(modifier) || modifier.operation() != AttributeModifier.Operation.ADD_MULTIPLIED_BASE) {
+				continue;
+			}
+			value += afterAdd * modifier.amount();
+		}
+		for (AttributeModifier modifier : speed.getModifiers()) {
+			if (isPathOrMudModifier(modifier) || modifier.operation() != AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL) {
+				continue;
+			}
+			value *= 1.0 + modifier.amount();
+		}
+		return speed.getAttribute().value().sanitizeValue(value);
+	}
+
+	private static boolean isPathOrMudModifier(AttributeModifier modifier) {
+		return modifier.is(PATH_MODIFIER_ID) || modifier.is(MUD_MODIFIER_ID);
 	}
 
 	public static void tickPlayer(ServerPlayer player) {
