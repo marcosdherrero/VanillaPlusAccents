@@ -1,5 +1,7 @@
 package net.berkle.vanillaplusaccents.flower;
 
+import java.util.List;
+
 import com.mojang.serialization.MapCodec;
 
 import net.minecraft.core.BlockPos;
@@ -8,18 +10,20 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BonemealableBlock;
+import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.VegetationBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -27,7 +31,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import net.berkle.vanillaplusaccents.block.entity.FlowerPatchBlockEntity;
 
 /** Block type backing stacked small-flower and mushroom patches. */
-public class FlowerPatchBlock extends BaseEntityBlock implements BonemealableBlock {
+public class FlowerPatchBlock extends VegetationBlock implements EntityBlock, BonemealableBlock {
 
 	public static final MapCodec<FlowerPatchBlock> CODEC = simpleCodec(FlowerPatchBlock::new);
 	private static final VoxelShape PLANT_SHAPE = Block.box(2.0, 0.0, 2.0, 14.0, 6.0, 14.0);
@@ -38,7 +42,7 @@ public class FlowerPatchBlock extends BaseEntityBlock implements BonemealableBlo
 	}
 
 	@Override
-	protected MapCodec<? extends BaseEntityBlock> codec() {
+	protected MapCodec<? extends VegetationBlock> codec() {
 		return CODEC;
 	}
 
@@ -63,25 +67,28 @@ public class FlowerPatchBlock extends BaseEntityBlock implements BonemealableBlo
 		return new FlowerPatchBlockEntity(pos, state);
 	}
 
+	/** Same supporting-block rules as the stored flower or mushroom, including wither rose and mycelium. */
 	@Override
-	public void playerDestroy(
-		Level level,
-		Player player,
-		BlockPos pos,
-		BlockState state,
-		BlockEntity blockEntity,
-		ItemStack tool
-	) {
-		if (blockEntity instanceof FlowerPatchBlockEntity patch) {
+	protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
+		if (level.getBlockEntity(pos) instanceof FlowerPatchBlockEntity patch) {
 			Block flower = BuiltInRegistries.BLOCK.getValue(patch.getFlowerId());
-			if (flower == null || !FlowerPatchSupport.canStackInPatch(flower)) {
-				flower = null;
-			}
-			if (flower != null && level instanceof ServerLevel serverLevel) {
-				Block.popResource(serverLevel, pos, new ItemStack(flower, patch.getCount()));
+			if (flower != null && FlowerPatchSupport.canStackInPatch(flower)) {
+				return flower.defaultBlockState().canSurvive(level, pos);
 			}
 		}
-		super.playerDestroy(level, player, pos, state, blockEntity, tool);
+		return super.canSurvive(state, level, pos);
+	}
+
+	@Override
+	protected List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
+		BlockEntity blockEntity = builder.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
+		if (blockEntity instanceof FlowerPatchBlockEntity patch) {
+			Block flower = BuiltInRegistries.BLOCK.getValue(patch.getFlowerId());
+			if (flower != null && FlowerPatchSupport.canStackInPatch(flower)) {
+				return List.of(new ItemStack(flower, patch.getCount()));
+			}
+		}
+		return List.of();
 	}
 
 	@Override

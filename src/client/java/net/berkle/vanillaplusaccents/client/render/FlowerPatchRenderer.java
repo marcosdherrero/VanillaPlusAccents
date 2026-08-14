@@ -82,12 +82,14 @@ public final class FlowerPatchRenderer implements BlockEntityRenderer<FlowerPatc
 		}
 
 		int drawCount = Math.min(state.count, state.placements.size());
+		float scale = FlowerPatchOffsets.modelScale(state.count);
 		for (int i = 0; i < drawCount; i++) {
 			FlowerPatchOffsets.Placement placement = state.placements.get(i);
 			poseStack.pushPose();
 			poseStack.translate(placement.x(), 0.0, placement.z());
 			poseStack.mulPose(Axis.YP.rotationDegrees(placement.yawDegrees()));
 			poseStack.mulPose(Axis.ZP.rotationDegrees(placement.leanDegrees()));
+			poseStack.scale(scale, scale, scale);
 			poseStack.translate(-0.5, 0.0, -0.5);
 			submitNodeCollector.submitMovingBlock(poseStack, state.movingBlock);
 			poseStack.popPose();

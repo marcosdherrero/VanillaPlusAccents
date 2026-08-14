@@ -97,10 +97,11 @@ The stonecutter also acts as a woodcutter for **vanilla and most modded woods**:
 |-------|--------|------|
 | Log / wood / stem / hyphae / bamboo block | Stripped variant | 1 → 1 |
 | Those blocks (including stripped) | Matching planks | 1 → 4 |
+| Those blocks (including stripped) | Matching fence | 1 → 1 |
 | Planks | Stairs | 1 → 1 |
 | Planks | Slabs | 1 → 2 |
 
-Recipes are generated at load time from **item id conventions** in each mod’s namespace (e.g. `mymod:willow_log` + `mymod:stripped_willow_log` + `mymod:willow_planks` + stairs/slab). Woods that use nonstandard names won’t be picked up automatically.
+Recipes are generated at load time from **item id conventions** in each mod’s namespace (e.g. `mymod:willow_log` + `mymod:stripped_willow_log` + `mymod:willow_planks` + stairs/slab/fence). Woods that use nonstandard names won’t be picked up automatically.
 
 ## Commands
 
@@ -141,7 +142,7 @@ All operator settings are world-wide (shared across dimensions via overworld Sav
 2. Drop [Fabric API](https://modrinth.com/mod/fabric-api) into your `mods` folder
 3. Drop the release jar from [`jars/`](jars/) into `mods`
 
-Current release: [`jars/vanillaplusaccents-1.0.1-Minecraft26.1.2.jar`](jars/vanillaplusaccents-1.0.1-Minecraft26.1.2.jar)
+Current release: [`jars/vanillaplusaccents-1.0.2-Minecraft26.1.2.jar`](jars/vanillaplusaccents-1.0.2-Minecraft26.1.2.jar)
 
 ## Build
 
@@ -149,12 +150,12 @@ Current release: [`jars/vanillaplusaccents-1.0.1-Minecraft26.1.2.jar`](jars/vani
 ./gradlew build
 ```
 
-Output: `build/libs/vanillaplusaccents-1.0.1-Minecraft26.1.2.jar`
+Output: `build/libs/vanillaplusaccents-1.0.2-Minecraft26.1.2.jar`
 
 Copy a release into `jars/` when publishing:
 
 ```powershell
-Copy-Item build\libs\vanillaplusaccents-1.0.1-Minecraft26.1.2.jar jars\ -Force
+Copy-Item build\libs\vanillaplusaccents-1.0.2-Minecraft26.1.2.jar jars\ -Force
 ```
 
 ## Development

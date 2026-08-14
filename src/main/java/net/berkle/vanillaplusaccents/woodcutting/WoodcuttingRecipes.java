@@ -24,7 +24,7 @@ import net.berkle.vanillaplusaccents.VanillaPlusAccentsMain;
  * Builds stonecutter woodcutting recipes from item-id conventions so vanilla and most
  * modded woods work without per-mod datapacks:
  * {@code ns:foo_log} / {@code ns:foo_wood} / {@code ns:foo_stem} / {@code ns:bamboo_block}
- * paired with stripped / planks / stairs / slab in the same namespace.
+ * paired with stripped / planks / stairs / slab / fence in the same namespace.
  */
 public final class WoodcuttingRecipes {
 
@@ -76,6 +76,8 @@ public final class WoodcuttingRecipes {
 		Item secondary = item(ns, wood + "_" + secondarySuffix);
 		Item strippedSecondary = item(ns, "stripped_" + wood + "_" + secondarySuffix);
 		Item planks = item(ns, wood + "_planks");
+		Item fence = item(ns, wood + "_fence");
+		Item[] logLikes = { primary, strippedPrimary, secondary, strippedSecondary };
 
 		if (primary != null && strippedPrimary != null) {
 			add(recipes, emitted, ns, primary, strippedPrimary, 1);
@@ -85,12 +87,11 @@ public final class WoodcuttingRecipes {
 		}
 
 		if (planks != null) {
-			for (Item src : new Item[] { primary, strippedPrimary, secondary, strippedSecondary }) {
-				if (src != null) {
-					add(recipes, emitted, ns, src, planks, 4);
-				}
-			}
+			addFromAll(recipes, emitted, ns, logLikes, planks, 4);
 			addPlankProducts(recipes, emitted, ns, wood, planks);
+		}
+		if (fence != null) {
+			addFromAll(recipes, emitted, ns, logLikes, fence, 1);
 		}
 	}
 
@@ -98,17 +99,17 @@ public final class WoodcuttingRecipes {
 		Item block = item(ns, "bamboo_block");
 		Item stripped = item(ns, "stripped_bamboo_block");
 		Item planks = item(ns, "bamboo_planks");
+		Item fence = item(ns, "bamboo_fence");
+		Item[] logLikes = { block, stripped };
 		if (block != null && stripped != null) {
 			add(recipes, emitted, ns, block, stripped, 1);
 		}
 		if (planks != null) {
-			if (block != null) {
-				add(recipes, emitted, ns, block, planks, 4);
-			}
-			if (stripped != null) {
-				add(recipes, emitted, ns, stripped, planks, 4);
-			}
+			addFromAll(recipes, emitted, ns, logLikes, planks, 4);
 			addPlankProducts(recipes, emitted, ns, "bamboo", planks);
+		}
+		if (fence != null) {
+			addFromAll(recipes, emitted, ns, logLikes, fence, 1);
 		}
 	}
 
@@ -126,6 +127,21 @@ public final class WoodcuttingRecipes {
 		}
 		if (slab != null) {
 			add(recipes, emitted, ns, planks, slab, 2);
+		}
+	}
+
+	private static void addFromAll(
+		List<RecipeHolder<?>> recipes,
+		Set<String> emitted,
+		String ns,
+		Item[] inputs,
+		Item output,
+		int count
+	) {
+		for (Item src : inputs) {
+			if (src != null) {
+				add(recipes, emitted, ns, src, output, count);
+			}
 		}
 	}
 

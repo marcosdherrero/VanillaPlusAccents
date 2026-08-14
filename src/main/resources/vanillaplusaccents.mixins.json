@@ -12,7 +12,8 @@
 		"EntityPiggybackRideMixin",
 		"EndermanTakeBlockGoalMixin",
 		"EndermanLeaveBlockGoalMixin",
-		"CreeperGriefMixin"
+		"CreeperGriefMixin",
+		"RecipeManagerMixin"
 	],
 	"client": [
 		"client.ItemFrameRendererMixin",

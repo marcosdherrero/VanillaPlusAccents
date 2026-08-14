@@ -9,13 +9,20 @@ import net.minecraft.util.RandomSource;
 
 /**
  * Deterministic per-flower placements inside a block.
- * 3-flower patches always form a non-degenerate triangle (never a straight line).
+ * <p>
+ * Vanilla cross models use 45° rescale, so an ~8px plant is about 0.32 blocks in radius.
+ * Centers stay far enough from each other and the block edge that opaque petals overlap by
+ * at most about one pixel for typical small flowers.
  */
 public final class FlowerPatchOffsets {
 
-	/** Stem positions stay on the block; full-size cross models may still reach the edges. */
-	private static final double MIN = 0.18;
-	private static final double MAX = 0.82;
+	private static final double MIN_CENTER = 0.22;
+	private static final double MAX_CENTER = 0.78;
+	private static final double MIN_DISTANCE = 0.47;
+	/** Rejects 3-flower layouts that collapse toward a straight line. */
+	private static final double MIN_TRIANGLE_AREA = 0.055;
+	/** Both axes must span this far so a 4-flower patch is a quad, not a row. */
+	private static final double MIN_QUAD_SPAN = 0.30;
 
 	private final List<Placement> placements;
 
@@ -40,90 +47,151 @@ public final class FlowerPatchOffsets {
 		return new FlowerPatchOffsets(list);
 	}
 
+	/** Cross models are full-block width; 3–4 stems need a slight shrink to keep ~1px petal overlap. */
+	public static float modelScale(int count) {
+		return switch (Mth.clamp(count, 1, 4)) {
+			case 3 -> 0.86f;
+			case 4 -> 0.84f;
+			default -> 1.0f;
+		};
+	}
+
 	private static long seedFor(BlockPos pos, int count) {
 		return pos.asLong() ^ (0x9E3779B97F4A7C15L * count) ^ 0xC6A4A7935BD1E995L;
 	}
 
 	private static Placement single(RandomSource random) {
-		double x = clamp(0.50 + (random.nextDouble() - 0.5) * 0.28);
-		double z = clamp(0.50 + (random.nextDouble() - 0.5) * 0.28);
+		double x = clamp(0.50 + (random.nextDouble() - 0.5) * 0.20);
+		double z = clamp(0.50 + (random.nextDouble() - 0.5) * 0.20);
 		return placement(x, z, random);
 	}
 
 	private static List<Placement> twoFlower(RandomSource random) {
 		double angle = random.nextDouble() * Math.PI;
-		double radius = 0.22 + random.nextDouble() * 0.06;
-		double dx = Math.cos(angle) * radius;
-		double dz = Math.sin(angle) * radius;
-		List<Placement> list = new ArrayList<>(2);
-		list.add(placement(clamp(0.50 - dx), clamp(0.50 - dz), random));
-		list.add(placement(clamp(0.50 + dx), clamp(0.50 + dz), random));
-		return list;
+		double radius = 0.25 + random.nextDouble() * 0.02;
+		double[] xs = {
+			0.50 - Math.cos(angle) * radius,
+			0.50 + Math.cos(angle) * radius
+		};
+		double[] zs = {
+			0.50 - Math.sin(angle) * radius,
+			0.50 + Math.sin(angle) * radius
+		};
+		if (!validLayout(xs, zs)) {
+			xs[0] = 0.50 - Math.cos(angle) * 0.26;
+			xs[1] = 0.50 + Math.cos(angle) * 0.26;
+			zs[0] = 0.50 - Math.sin(angle) * 0.26;
+			zs[1] = 0.50 + Math.sin(angle) * 0.26;
+		}
+		return toPlacements(xs, zs, random);
 	}
 
 	/**
-	 * Always a triangle: vertices on a circle at 120° spacing. Light jitter is rejected if the
-	 * shape collapses toward a straight line.
+	 * Equilateral triangle with light jitter. Layouts that flatten into a line or violate
+	 * spacing/edge limits are rejected.
 	 */
 	private static List<Placement> threeFlowerTriangle(RandomSource random) {
 		double baseAngle = random.nextDouble() * Math.PI * 2.0;
-		double radius = 0.24 + random.nextDouble() * 0.04;
-
 		double[] xs = new double[3];
 		double[] zs = new double[3];
-		for (int attempt = 0; attempt < 12; attempt++) {
+
+		for (int attempt = 0; attempt < 16; attempt++) {
+			double radius = 0.272 + random.nextDouble() * 0.006;
 			for (int i = 0; i < 3; i++) {
 				double angle = baseAngle + i * (Math.PI * 2.0 / 3.0);
-				if (attempt > 0) {
-					angle += (random.nextDouble() - 0.5) * 0.30;
-				}
-				double r = radius;
-				if (attempt > 0) {
-					r += (random.nextDouble() - 0.5) * 0.05;
-				}
-				xs[i] = clamp(0.50 + Math.cos(angle) * r);
-				zs[i] = clamp(0.50 + Math.sin(angle) * r);
+				angle += (random.nextDouble() - 0.5) * 0.12;
+				double r = radius + (random.nextDouble() - 0.5) * 0.012;
+				xs[i] = 0.50 + Math.cos(angle) * r;
+				zs[i] = 0.50 + Math.sin(angle) * r;
 			}
-			if (triangleArea(xs, zs) >= 0.020) {
-				break;
-			}
-			if (attempt == 11) {
-				for (int i = 0; i < 3; i++) {
-					double angle = baseAngle + i * (Math.PI * 2.0 / 3.0);
-					xs[i] = clamp(0.50 + Math.cos(angle) * radius);
-					zs[i] = clamp(0.50 + Math.sin(angle) * radius);
-				}
+			if (validLayout(xs, zs)) {
+				return toPlacements(xs, zs, random);
 			}
 		}
 
-		List<Placement> list = new ArrayList<>(3);
 		for (int i = 0; i < 3; i++) {
-			list.add(placement(xs[i], zs[i], random));
+			double angle = baseAngle + i * (Math.PI * 2.0 / 3.0);
+			xs[i] = 0.50 + Math.cos(angle) * 0.275;
+			zs[i] = 0.50 + Math.sin(angle) * 0.275;
 		}
-		return list;
+		return toPlacements(xs, zs, random);
 	}
 
+	/**
+	 * Slightly rotated 2×2 with tiny jitter. Random dart-throwing cannot fit four well-spaced
+	 * flowers, so we start from a square and only keep layouts that stay a quad.
+	 */
 	private static List<Placement> fourFlower(RandomSource random) {
-		double[][] bases = {
-			{0.26, 0.26},
-			{0.74, 0.26},
-			{0.26, 0.74},
-			{0.74, 0.74},
-		};
-		int turns = random.nextInt(4);
-		for (int t = 0; t < turns; t++) {
-			for (double[] slot : bases) {
-				double x = slot[0];
-				double z = slot[1];
-				slot[0] = z;
-				slot[1] = 1.0 - x;
+		double[] xs = new double[4];
+		double[] zs = new double[4];
+		double baseAngle = (random.nextDouble() - 0.5) * 0.24;
+		double half = 0.245;
+
+		for (int attempt = 0; attempt < 24; attempt++) {
+			double angle = attempt == 0 ? baseAngle : baseAngle + (random.nextDouble() - 0.5) * 0.08;
+			double hx = half + (attempt == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.02);
+			double hz = half + (attempt == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.02);
+			double cos = Math.cos(angle);
+			double sin = Math.sin(angle);
+			double[][] locals = {
+				{-hx, -hz},
+				{hx, -hz},
+				{-hx, hz},
+				{hx, hz}
+			};
+			for (int i = 0; i < 4; i++) {
+				double lx = locals[i][0];
+				double lz = locals[i][1];
+				double jx = attempt == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.03;
+				double jz = attempt == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.03;
+				xs[i] = 0.50 + lx * cos - lz * sin + jx;
+				zs[i] = 0.50 + lx * sin + lz * cos + jz;
+			}
+			if (validLayout(xs, zs)) {
+				return toPlacements(xs, zs, random);
 			}
 		}
-		List<Placement> list = new ArrayList<>(4);
-		for (double[] slot : bases) {
-			double x = clamp(slot[0] + (random.nextDouble() - 0.5) * 0.08);
-			double z = clamp(slot[1] + (random.nextDouble() - 0.5) * 0.08);
-			list.add(placement(x, z, random));
+
+		xs[0] = 0.255;
+		zs[0] = 0.255;
+		xs[1] = 0.745;
+		zs[1] = 0.255;
+		xs[2] = 0.255;
+		zs[2] = 0.745;
+		xs[3] = 0.745;
+		zs[3] = 0.745;
+		return toPlacements(xs, zs, random);
+	}
+
+	private static boolean validLayout(double[] xs, double[] zs) {
+		int n = xs.length;
+		for (int i = 0; i < n; i++) {
+			if (xs[i] < MIN_CENTER || xs[i] > MAX_CENTER || zs[i] < MIN_CENTER || zs[i] > MAX_CENTER) {
+				return false;
+			}
+		}
+		for (int i = 0; i < n; i++) {
+			for (int j = i + 1; j < n; j++) {
+				double dx = xs[i] - xs[j];
+				double dz = zs[i] - zs[j];
+				if (dx * dx + dz * dz < MIN_DISTANCE * MIN_DISTANCE) {
+					return false;
+				}
+			}
+		}
+		if (n == 3 && triangleArea(xs, zs) < MIN_TRIANGLE_AREA) {
+			return false;
+		}
+		if (n == 4 && (span(xs) < MIN_QUAD_SPAN || span(zs) < MIN_QUAD_SPAN)) {
+			return false;
+		}
+		return true;
+	}
+
+	private static List<Placement> toPlacements(double[] xs, double[] zs, RandomSource random) {
+		List<Placement> list = new ArrayList<>(xs.length);
+		for (int i = 0; i < xs.length; i++) {
+			list.add(placement(clamp(xs[i]), clamp(zs[i]), random));
 		}
 		return list;
 	}
@@ -138,8 +206,18 @@ public final class FlowerPatchOffsets {
 		);
 	}
 
+	private static double span(double[] values) {
+		double min = values[0];
+		double max = values[0];
+		for (int i = 1; i < values.length; i++) {
+			min = Math.min(min, values[i]);
+			max = Math.max(max, values[i]);
+		}
+		return max - min;
+	}
+
 	private static double clamp(double value) {
-		return Mth.clamp(value, MIN, MAX);
+		return Mth.clamp(value, MIN_CENTER, MAX_CENTER);
 	}
 
 	public record Placement(double x, double z, float yawDegrees, float leanDegrees) {

@@ -20,7 +20,11 @@ import net.berkle.vanillaplusaccents.woodcutting.WoodcuttingRecipes;
 @Mixin(RecipeManager.class)
 public abstract class RecipeManagerMixin {
 
-	@Inject(method = "prepare", at = @At("RETURN"), cancellable = true)
+	@Inject(
+		method = "prepare(Lnet/minecraft/server/packs/resources/ResourceManager;Lnet/minecraft/util/profiling/ProfilerFiller;)Lnet/minecraft/world/item/crafting/RecipeMap;",
+		at = @At("RETURN"),
+		cancellable = true
+	)
 	private void vpa$injectWoodcuttingRecipes(
 		ResourceManager resourceManager,
 		ProfilerFiller profiler,
