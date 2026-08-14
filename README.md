@@ -98,10 +98,11 @@ The stonecutter also acts as a woodcutter for **vanilla and most modded woods**:
 | Log / wood / stem / hyphae / bamboo block | Stripped variant | 1 → 1 |
 | Those blocks (including stripped) | Matching planks | 1 → 4 |
 | Those blocks (including stripped) | Matching fence | 1 → 1 |
+| Those blocks (including stripped) | Matching fence gate | 1 → 1 |
 | Planks | Stairs | 1 → 1 |
 | Planks | Slabs | 1 → 2 |
 
-Recipes are generated at load time from **item id conventions** in each mod’s namespace (e.g. `mymod:willow_log` + `mymod:stripped_willow_log` + `mymod:willow_planks` + stairs/slab/fence). Woods that use nonstandard names won’t be picked up automatically.
+Recipes are generated at load time from **item id conventions** in each mod’s namespace (e.g. `mymod:willow_log` + `mymod:stripped_willow_log` + `mymod:willow_planks` + stairs/slab/fence/fence gate). Woods that use nonstandard names won’t be picked up automatically.
 
 ## Commands
 

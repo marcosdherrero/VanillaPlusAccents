@@ -24,7 +24,7 @@ import net.berkle.vanillaplusaccents.VanillaPlusAccentsMain;
  * Builds stonecutter woodcutting recipes from item-id conventions so vanilla and most
  * modded woods work without per-mod datapacks:
  * {@code ns:foo_log} / {@code ns:foo_wood} / {@code ns:foo_stem} / {@code ns:bamboo_block}
- * paired with stripped / planks / stairs / slab / fence in the same namespace.
+ * paired with stripped / planks / stairs / slab / fence / fence gate in the same namespace.
  */
 public final class WoodcuttingRecipes {
 
@@ -77,6 +77,7 @@ public final class WoodcuttingRecipes {
 		Item strippedSecondary = item(ns, "stripped_" + wood + "_" + secondarySuffix);
 		Item planks = item(ns, wood + "_planks");
 		Item fence = item(ns, wood + "_fence");
+		Item fenceGate = item(ns, wood + "_fence_gate");
 		Item[] logLikes = { primary, strippedPrimary, secondary, strippedSecondary };
 
 		if (primary != null && strippedPrimary != null) {
@@ -93,6 +94,9 @@ public final class WoodcuttingRecipes {
 		if (fence != null) {
 			addFromAll(recipes, emitted, ns, logLikes, fence, 1);
 		}
+		if (fenceGate != null) {
+			addFromAll(recipes, emitted, ns, logLikes, fenceGate, 1);
+		}
 	}
 
 	private static void addBambooFamily(List<RecipeHolder<?>> recipes, Set<String> emitted, String ns) {
@@ -100,6 +104,7 @@ public final class WoodcuttingRecipes {
 		Item stripped = item(ns, "stripped_bamboo_block");
 		Item planks = item(ns, "bamboo_planks");
 		Item fence = item(ns, "bamboo_fence");
+		Item fenceGate = item(ns, "bamboo_fence_gate");
 		Item[] logLikes = { block, stripped };
 		if (block != null && stripped != null) {
 			add(recipes, emitted, ns, block, stripped, 1);
@@ -110,6 +115,9 @@ public final class WoodcuttingRecipes {
 		}
 		if (fence != null) {
 			addFromAll(recipes, emitted, ns, logLikes, fence, 1);
+		}
+		if (fenceGate != null) {
+			addFromAll(recipes, emitted, ns, logLikes, fenceGate, 1);
 		}
 	}
 
