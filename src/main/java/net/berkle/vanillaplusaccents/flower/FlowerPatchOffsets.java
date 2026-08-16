@@ -9,10 +9,8 @@ import net.minecraft.util.RandomSource;
 
 /**
  * Deterministic per-flower placements inside a block.
- * <p>
- * Vanilla cross models use 45° rescale, so an ~8px plant is about 0.32 blocks in radius.
- * Centers stay far enough from each other and the block edge that opaque petals overlap by
- * at most about one pixel for typical small flowers.
+ * Stems stay spaced so 3-flower patches form a triangle and 4-flower patches form a quad.
+ * Flowers keep vanilla size; petals may overlap neighboring blocks.
  */
 public final class FlowerPatchOffsets {
 
@@ -45,15 +43,6 @@ public final class FlowerPatchOffsets {
 			default -> List.of(single(random));
 		};
 		return new FlowerPatchOffsets(list);
-	}
-
-	/** Cross models are full-block width; 3–4 stems need a slight shrink to keep ~1px petal overlap. */
-	public static float modelScale(int count) {
-		return switch (Mth.clamp(count, 1, 4)) {
-			case 3 -> 0.86f;
-			case 4 -> 0.84f;
-			default -> 1.0f;
-		};
 	}
 
 	private static long seedFor(BlockPos pos, int count) {
