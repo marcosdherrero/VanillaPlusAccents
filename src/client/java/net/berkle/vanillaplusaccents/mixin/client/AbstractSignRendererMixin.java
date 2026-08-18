@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.blockentity.AbstractSignRenderer;
 import net.minecraft.client.renderer.blockentity.state.SignRenderState;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
@@ -65,7 +66,7 @@ public abstract class AbstractSignRendererMixin {
 	}
 
 	@Inject(
-		method = "submitSignWithText",
+		method = "submit(Lnet/minecraft/client/renderer/blockentity/state/SignRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
 		at = @At(
 			value = "INVOKE",
 			target = "Lnet/minecraft/client/renderer/blockentity/AbstractSignRenderer;submitSignText(Lnet/minecraft/client/renderer/blockentity/state/SignRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/world/level/block/entity/SignText;)V",
@@ -76,8 +77,8 @@ public abstract class AbstractSignRendererMixin {
 	private void vpa$renderFrontSignItem(
 		SignRenderState state,
 		PoseStack poseStack,
-		ModelFeatureRenderer.CrumblingOverlay crumblingOverlay,
 		SubmitNodeCollector submitNodeCollector,
+		CameraRenderState camera,
 		CallbackInfo ci
 	) {
 		SignDisplayedItemRenderer.submitInTextSpace(
@@ -90,7 +91,7 @@ public abstract class AbstractSignRendererMixin {
 	}
 
 	@Inject(
-		method = "submitSignWithText",
+		method = "submit(Lnet/minecraft/client/renderer/blockentity/state/SignRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
 		at = @At(
 			value = "INVOKE",
 			target = "Lnet/minecraft/client/renderer/blockentity/AbstractSignRenderer;submitSignText(Lnet/minecraft/client/renderer/blockentity/state/SignRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/world/level/block/entity/SignText;)V",
@@ -101,8 +102,8 @@ public abstract class AbstractSignRendererMixin {
 	private void vpa$renderBackSignItem(
 		SignRenderState state,
 		PoseStack poseStack,
-		ModelFeatureRenderer.CrumblingOverlay crumblingOverlay,
 		SubmitNodeCollector submitNodeCollector,
+		CameraRenderState camera,
 		CallbackInfo ci
 	) {
 		SignDisplayedItemRenderer.submitInTextSpace(

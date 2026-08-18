@@ -4,7 +4,7 @@
 
 # Vanilla Plus Accents
 
-Small vanilla-friendly quality-of-life accents for Minecraft **Java Edition 26.1.2** (Fabric).
+Small vanilla-friendly quality-of-life accents for Minecraft **Java Edition 26.2** (Fabric).
 
 ![Flower patches and seating by the water](docs/images/flower-patches-and-seating.png)
 
@@ -12,13 +12,17 @@ Small vanilla-friendly quality-of-life accents for Minecraft **Java Edition 26.1
 
 ### Invisible item frames & sign displays
 
-Shear an item frame to hide the wooden backing (shear again to show it). Place any item on an empty sign the same way you would an item frame; empty-hand click removes it.
+Shear an item frame to hide the wooden backing (shear again to show it). Place any item on an empty sign the same way you would an item frame; empty-hand click removes it. Displayed items sit **flush on the sign face** (standing, wall, and hanging signs).
 
 ![Item frames, signs with items, and fence posts](docs/images/item-frames-and-signs.png)
 
+![Oak log on a hanging sign and wither rose on a wall sign, both flush to the face](docs/images/sign-items-flush.png)
+
+![Wither rose flush on a hanging sign](docs/images/hanging-sign-item-flush.png)
+
 ### Fence-to-fence leads
 
-Connect fences with leads for decorative rope lines (completed spans droop as catenaries):
+Connect fences with leads for decorative rope lines. Completed spans droop as catenaries and use the **same rib spacing** as a lead on an animal:
 
 1. Right-click a fence while **leading a mob** to hitch that animal (vanilla). Extra leads in hand do not start a rope.
 2. Right-click a fence with a **lead** (not leading a mob) to anchor (consumes one lead; rope follows you)
@@ -41,7 +45,7 @@ A fence can hold many links. New ropes only start when you click with a lead aga
 
 ### Flower patches
 
-Stack matching small flowers or mushrooms up to **4 per block** with natural askew placement. Bonemeal a single plant to start a patch of 2.
+Stack matching small flowers or mushrooms up to **4 per block**. Models stay **vanilla size**; 2–4 stems are spaced so typical small flowers (poppies, dandelions, and similar) do not cover each other — three stay a triangle, four a quad. Petals may spill into neighboring blocks. Bonemeal a single plant to start a patch of 2.
 
 ![Flower patches, seating, and fence leads](docs/images/accents-overview.png)
 
@@ -91,9 +95,13 @@ Relative fly speed while a player is controlling a Happy Ghast (`1.0` = vanilla)
 
 Omit the value to show the current setting.
 
-### Stonecutter woodcutting
+### Wood / stone cutter
 
-The stonecutter also acts as a woodcutter for **vanilla and most modded woods**:
+The vanilla stonecutter also acts as a woodcutter for **vanilla and most modded woods**:
+
+![Oak log in the stonecutter: stripped log, planks, fence, and fence gate](docs/images/stonecutter-log-recipes.png)
+
+![Oak planks in the stonecutter: stairs and slabs](docs/images/stonecutter-plank-recipes.png)
 
 | Input | Output | Rate |
 |-------|--------|------|
@@ -134,9 +142,9 @@ All operator settings are world-wide (shared across dimensions via overworld Sav
 
 | | |
 |---|---|
-| Minecraft | **26.1.2** |
-| Fabric Loader | **0.19.2+** |
-| Fabric API | **0.149.0+26.1.2** |
+| Minecraft | **26.2** |
+| Fabric Loader | **0.19.3+** |
+| Fabric API | **0.157.0+26.2** |
 | Java | **25** |
 
 ## Install
@@ -145,7 +153,7 @@ All operator settings are world-wide (shared across dimensions via overworld Sav
 2. Drop [Fabric API](https://modrinth.com/mod/fabric-api) into your `mods` folder
 3. Drop the release jar from [`jars/`](jars/) into `mods`
 
-Current release: [`jars/vanillaplusaccents-1.0.4-Minecraft26.2.jar`](jars/vanillaplusaccents-1.0.4-Minecraft26.2.jar)
+Current release: [`jars/vanillaplusaccents-1.0.5-Minecraft26.2.jar`](jars/vanillaplusaccents-1.0.5-Minecraft26.2.jar)
 
 ## Build
 
@@ -153,12 +161,12 @@ Current release: [`jars/vanillaplusaccents-1.0.4-Minecraft26.2.jar`](jars/vanill
 ./gradlew build
 ```
 
-Output: `build/libs/vanillaplusaccents-1.0.4-Minecraft26.2.jar`
+Output: `build/libs/vanillaplusaccents-1.0.5-Minecraft26.2.jar`
 
 Copy a release into `jars/` when publishing:
 
 ```powershell
-Copy-Item build\libs\vanillaplusaccents-1.0.4-Minecraft26.2.jar jars\ -Force
+Copy-Item build\libs\vanillaplusaccents-1.0.5-Minecraft26.2.jar jars\ -Force
 ```
 
 ## Development

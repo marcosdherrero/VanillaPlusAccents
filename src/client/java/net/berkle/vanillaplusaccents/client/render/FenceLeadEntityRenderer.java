@@ -9,22 +9,26 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+
+import net.berkle.vanillaplusaccents.client.render.state.FenceLeadRenderState;
 import net.berkle.vanillaplusaccents.entity.VpaEntityTypes;
 import net.berkle.vanillaplusaccents.fence.FenceLeadEntity;
 
 /**
- * No model. Builds {@code leashStates} from synched endpoints so completed ropes
- * render even when the vanilla leash-holder link packet is missing/late.
- * Completed fence-to-fence spans use a catenary; pending player ropes stay vanilla.
+ * No model. Pending ropes use vanilla leashStates. Completed fence-to-fence
+ * spans draw one 24-step catenary ribbon so rib spacing matches animal leads.
  */
-public final class FenceLeadEntityRenderer extends EntityRenderer<FenceLeadEntity, EntityRenderState> {
+public final class FenceLeadEntityRenderer extends EntityRenderer<FenceLeadEntity, FenceLeadRenderState> {
 
 	public FenceLeadEntityRenderer(EntityRendererProvider.Context context) {
 		super(context);
@@ -32,31 +36,28 @@ public final class FenceLeadEntityRenderer extends EntityRenderer<FenceLeadEntit
 	}
 
 	@Override
-	public EntityRenderState createRenderState() {
-		return new EntityRenderState();
+	public FenceLeadRenderState createRenderState() {
+		return new FenceLeadRenderState();
 	}
 
 	@Override
-	public void extractRenderState(FenceLeadEntity entity, EntityRenderState state, float partialTick) {
+	public void extractRenderState(FenceLeadEntity entity, FenceLeadRenderState state, float partialTick) {
 		super.extractRenderState(entity, state, partialTick);
 
 		Optional<BlockPos> to = entity.getTo();
 		Vec3 start = FenceLeadEntity.attachPoint(entity.getFrom());
 		Vec3 origin = entity.getPosition(partialTick);
+		state.completed = false;
+		state.start = start;
+		state.end = Vec3.ZERO;
 		if (!(entity.level() instanceof ClientLevel clientLevel)) {
 			state.leashStates = null;
 			return;
 		}
 		if (to.isPresent()) {
-			List<EntityRenderState.LeashState> states = new ArrayList<>(Catenary.SEGMENTS);
-			FenceLeadRender.fillCompletedStates(
-				clientLevel,
-				start,
-				FenceLeadEntity.attachPoint(to.get()),
-				origin,
-				states
-			);
-			state.leashStates = states;
+			state.completed = true;
+			state.end = FenceLeadEntity.attachPoint(to.get());
+			state.leashStates = null;
 			return;
 		}
 
@@ -75,6 +76,26 @@ public final class FenceLeadEntityRenderer extends EntityRenderer<FenceLeadEntit
 			origin
 		));
 		state.leashStates = states;
+	}
+
+	@Override
+	public void submit(
+		FenceLeadRenderState state,
+		PoseStack poseStack,
+		SubmitNodeCollector submitNodeCollector,
+		CameraRenderState cameraRenderState
+	) {
+		if (state.completed && Minecraft.getInstance().level instanceof ClientLevel level) {
+			FenceLeadRender.submitCompleted(
+				level,
+				poseStack,
+				submitNodeCollector,
+				new Vec3(state.x, state.y, state.z),
+				state.start,
+				state.end
+			);
+		}
+		super.submit(state, poseStack, submitNodeCollector, cameraRenderState);
 	}
 
 	public static void register() {

@@ -9,18 +9,21 @@ import net.minecraft.util.RandomSource;
 
 /**
  * Deterministic per-flower placements inside a block.
- * Stems stay spaced so 3-flower patches form a triangle and 4-flower patches form a quad.
- * Flowers keep vanilla size; petals may overlap neighboring blocks.
+ * Stems stay far enough apart that typical small-flower heads do not cover each other.
+ * Models stay vanilla size, so petals may spill into neighboring blocks.
+ * One shared yaw keeps the two cross planes aligned instead of slicing through each other.
  */
 public final class FlowerPatchOffsets {
 
-	private static final double MIN_CENTER = 0.22;
-	private static final double MAX_CENTER = 0.78;
-	private static final double MIN_DISTANCE = 0.47;
+	private static final double MIN_CENTER = 0.14;
+	private static final double MAX_CENTER = 0.86;
+	private static final double MIN_DISTANCE = 0.60;
 	/** Rejects 3-flower layouts that collapse toward a straight line. */
-	private static final double MIN_TRIANGLE_AREA = 0.055;
+	private static final double MIN_TRIANGLE_AREA = 0.090;
 	/** Both axes must span this far so a 4-flower patch is a quad, not a row. */
-	private static final double MIN_QUAD_SPAN = 0.30;
+	private static final double MIN_QUAD_SPAN = 0.50;
+	/** Per-stem yaw jitter around the patch yaw, in degrees. */
+	private static final float YAW_JITTER = 14.0f;
 
 	private final List<Placement> placements;
 
@@ -52,26 +55,29 @@ public final class FlowerPatchOffsets {
 	private static Placement single(RandomSource random) {
 		double x = clamp(0.50 + (random.nextDouble() - 0.5) * 0.20);
 		double z = clamp(0.50 + (random.nextDouble() - 0.5) * 0.20);
-		return placement(x, z, random);
+		return placement(x, z, random.nextFloat() * 360.0f);
 	}
 
 	private static List<Placement> twoFlower(RandomSource random) {
 		double angle = random.nextDouble() * Math.PI;
-		double radius = 0.25 + random.nextDouble() * 0.02;
-		double[] xs = {
-			0.50 - Math.cos(angle) * radius,
-			0.50 + Math.cos(angle) * radius
-		};
-		double[] zs = {
-			0.50 - Math.sin(angle) * radius,
-			0.50 + Math.sin(angle) * radius
-		};
-		if (!validLayout(xs, zs)) {
-			xs[0] = 0.50 - Math.cos(angle) * 0.26;
-			xs[1] = 0.50 + Math.cos(angle) * 0.26;
-			zs[0] = 0.50 - Math.sin(angle) * 0.26;
-			zs[1] = 0.50 + Math.sin(angle) * 0.26;
+		double[] xs = new double[2];
+		double[] zs = new double[2];
+
+		for (int attempt = 0; attempt < 12; attempt++) {
+			double radius = 0.32 + random.nextDouble() * 0.02;
+			xs[0] = 0.50 - Math.cos(angle) * radius;
+			xs[1] = 0.50 + Math.cos(angle) * radius;
+			zs[0] = 0.50 - Math.sin(angle) * radius;
+			zs[1] = 0.50 + Math.sin(angle) * radius;
+			if (validLayout(xs, zs)) {
+				return toPlacements(xs, zs, random);
+			}
 		}
+
+		xs[0] = 0.50 - Math.cos(angle) * 0.33;
+		xs[1] = 0.50 + Math.cos(angle) * 0.33;
+		zs[0] = 0.50 - Math.sin(angle) * 0.33;
+		zs[1] = 0.50 + Math.sin(angle) * 0.33;
 		return toPlacements(xs, zs, random);
 	}
 
@@ -85,11 +91,11 @@ public final class FlowerPatchOffsets {
 		double[] zs = new double[3];
 
 		for (int attempt = 0; attempt < 16; attempt++) {
-			double radius = 0.272 + random.nextDouble() * 0.006;
+			double radius = 0.348 + random.nextDouble() * 0.008;
 			for (int i = 0; i < 3; i++) {
 				double angle = baseAngle + i * (Math.PI * 2.0 / 3.0);
-				angle += (random.nextDouble() - 0.5) * 0.12;
-				double r = radius + (random.nextDouble() - 0.5) * 0.012;
+				angle += (random.nextDouble() - 0.5) * 0.08;
+				double r = radius + (random.nextDouble() - 0.5) * 0.008;
 				xs[i] = 0.50 + Math.cos(angle) * r;
 				zs[i] = 0.50 + Math.sin(angle) * r;
 			}
@@ -100,8 +106,8 @@ public final class FlowerPatchOffsets {
 
 		for (int i = 0; i < 3; i++) {
 			double angle = baseAngle + i * (Math.PI * 2.0 / 3.0);
-			xs[i] = 0.50 + Math.cos(angle) * 0.275;
-			zs[i] = 0.50 + Math.sin(angle) * 0.275;
+			xs[i] = 0.50 + Math.cos(angle) * 0.350;
+			zs[i] = 0.50 + Math.sin(angle) * 0.350;
 		}
 		return toPlacements(xs, zs, random);
 	}
@@ -113,13 +119,12 @@ public final class FlowerPatchOffsets {
 	private static List<Placement> fourFlower(RandomSource random) {
 		double[] xs = new double[4];
 		double[] zs = new double[4];
-		double baseAngle = (random.nextDouble() - 0.5) * 0.24;
-		double half = 0.245;
+		double baseAngle = (random.nextDouble() - 0.5) * 0.08;
 
 		for (int attempt = 0; attempt < 24; attempt++) {
-			double angle = attempt == 0 ? baseAngle : baseAngle + (random.nextDouble() - 0.5) * 0.08;
-			double hx = half + (attempt == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.02);
-			double hz = half + (attempt == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.02);
+			double angle = attempt == 0 ? baseAngle : baseAngle + (random.nextDouble() - 0.5) * 0.03;
+			double hx = 0.34 + (attempt == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.01);
+			double hz = 0.34 + (attempt == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.01);
 			double cos = Math.cos(angle);
 			double sin = Math.sin(angle);
 			double[][] locals = {
@@ -131,8 +136,8 @@ public final class FlowerPatchOffsets {
 			for (int i = 0; i < 4; i++) {
 				double lx = locals[i][0];
 				double lz = locals[i][1];
-				double jx = attempt == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.03;
-				double jz = attempt == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.03;
+				double jx = attempt == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.012;
+				double jz = attempt == 0 ? 0.0 : (random.nextDouble() - 0.5) * 0.012;
 				xs[i] = 0.50 + lx * cos - lz * sin + jx;
 				zs[i] = 0.50 + lx * sin + lz * cos + jz;
 			}
@@ -141,14 +146,14 @@ public final class FlowerPatchOffsets {
 			}
 		}
 
-		xs[0] = 0.255;
-		zs[0] = 0.255;
-		xs[1] = 0.745;
-		zs[1] = 0.255;
-		xs[2] = 0.255;
-		zs[2] = 0.745;
-		xs[3] = 0.745;
-		zs[3] = 0.745;
+		xs[0] = 0.16;
+		zs[0] = 0.16;
+		xs[1] = 0.84;
+		zs[1] = 0.16;
+		xs[2] = 0.16;
+		zs[2] = 0.84;
+		xs[3] = 0.84;
+		zs[3] = 0.84;
 		return toPlacements(xs, zs, random);
 	}
 
@@ -178,15 +183,17 @@ public final class FlowerPatchOffsets {
 	}
 
 	private static List<Placement> toPlacements(double[] xs, double[] zs, RandomSource random) {
+		float baseYaw = random.nextFloat() * 360.0f;
 		List<Placement> list = new ArrayList<>(xs.length);
 		for (int i = 0; i < xs.length; i++) {
-			list.add(placement(clamp(xs[i]), clamp(zs[i]), random));
+			float yaw = baseYaw + (random.nextFloat() - 0.5f) * YAW_JITTER;
+			list.add(placement(clamp(xs[i]), clamp(zs[i]), yaw));
 		}
 		return list;
 	}
 
-	private static Placement placement(double x, double z, RandomSource random) {
-		return new Placement(x, z, random.nextFloat() * 360.0f, 0.0f);
+	private static Placement placement(double x, double z, float yawDegrees) {
+		return new Placement(x, z, yawDegrees, 0.0f);
 	}
 
 	private static double triangleArea(double[] xs, double[] zs) {
