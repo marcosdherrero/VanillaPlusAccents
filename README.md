@@ -18,13 +18,15 @@ Shear an item frame to hide the wooden backing (shear again to show it). Place a
 
 ### Fence-to-fence leads
 
-Connect fences with leads for decorative rope lines:
+Connect fences with leads for decorative rope lines (completed spans droop as catenaries):
 
-1. Right-click a fence with a **lead** to anchor (consumes one lead; rope follows you)
-2. Right-click a second fence within **16 blocks** to connect (empty hand is fine while pending)
-3. Right-click the same fence again while pending to cancel and refund
-4. Empty hand on a **knot** picks up all links on that post
-5. Breaking a linked fence removes its connections — survival returns leads to inventory; creative drops them as items at the break
+1. Right-click a fence while **leading a mob** to hitch that animal (vanilla). Extra leads in hand do not start a rope.
+2. Right-click a fence with a **lead** (not leading a mob) to anchor (consumes one lead; rope follows you)
+3. Right-click a second fence within **16 blocks** to connect (empty hand is fine while pending)
+4. Right-click the same fence again while pending to cancel and refund
+5. Empty hand on a **knot** picks up all links on that post
+6. **Shears** on a fence or knot drop every fence-to-fence lead on that post (animals use vanilla shear)
+7. Breaking a linked fence removes its connections — survival returns leads to inventory; creative drops them as items at the break
 
 A fence can hold many links. New ropes only start when you click with a lead again.
 
@@ -143,7 +145,7 @@ All operator settings are world-wide (shared across dimensions via overworld Sav
 2. Drop [Fabric API](https://modrinth.com/mod/fabric-api) into your `mods` folder
 3. Drop the release jar from [`jars/`](jars/) into `mods`
 
-Current release: [`jars/vanillaplusaccents-1.0.3-Minecraft26.2.jar`](jars/vanillaplusaccents-1.0.3-Minecraft26.2.jar)
+Current release: [`jars/vanillaplusaccents-1.0.4-Minecraft26.2.jar`](jars/vanillaplusaccents-1.0.4-Minecraft26.2.jar)
 
 ## Build
 
@@ -151,12 +153,12 @@ Current release: [`jars/vanillaplusaccents-1.0.3-Minecraft26.2.jar`](jars/vanill
 ./gradlew build
 ```
 
-Output: `build/libs/vanillaplusaccents-1.0.3-Minecraft26.2.jar`
+Output: `build/libs/vanillaplusaccents-1.0.4-Minecraft26.2.jar`
 
 Copy a release into `jars/` when publishing:
 
 ```powershell
-Copy-Item build\libs\vanillaplusaccents-1.0.3-Minecraft26.2.jar jars\ -Force
+Copy-Item build\libs\vanillaplusaccents-1.0.4-Minecraft26.2.jar jars\ -Force
 ```
 
 ## Development
