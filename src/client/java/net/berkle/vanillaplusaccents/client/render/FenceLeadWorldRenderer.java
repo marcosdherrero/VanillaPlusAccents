@@ -7,12 +7,8 @@ import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
-import net.minecraft.core.BlockPos;
-import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -61,7 +57,7 @@ public final class FenceLeadWorldRenderer {
 			if (live.stream().anyMatch(entity -> entity.matches(link))) {
 				continue;
 			}
-			submitRope(
+			FenceLeadRender.submitCompleted(
 				level,
 				poseStack,
 				collector,
@@ -70,36 +66,5 @@ public final class FenceLeadWorldRenderer {
 				FenceLeadEntity.attachPoint(link.to())
 			);
 		}
-	}
-
-	private static void submitRope(
-		ClientLevel level,
-		PoseStack poseStack,
-		SubmitNodeCollector collector,
-		Vec3 cameraPos,
-		Vec3 start,
-		Vec3 end
-	) {
-		EntityRenderState.LeashState state = new EntityRenderState.LeashState();
-		state.offset = Vec3.ZERO;
-		state.start = start;
-		state.end = end;
-		state.slack = true;
-
-		int startPacked = LevelRenderer.getLightCoords(level, BlockPos.containing(start));
-		int endPacked = LevelRenderer.getLightCoords(level, BlockPos.containing(end));
-		state.startBlockLight = LightCoordsUtil.block(startPacked);
-		state.startSkyLight = LightCoordsUtil.sky(startPacked);
-		state.endBlockLight = LightCoordsUtil.block(endPacked);
-		state.endSkyLight = LightCoordsUtil.sky(endPacked);
-
-		poseStack.pushPose();
-		poseStack.translate(
-			start.x - cameraPos.x,
-			start.y - cameraPos.y,
-			start.z - cameraPos.z
-		);
-		collector.submitLeash(poseStack, state);
-		poseStack.popPose();
 	}
 }

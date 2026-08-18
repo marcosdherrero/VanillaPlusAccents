@@ -14,12 +14,14 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Leashable;
 import net.minecraft.world.entity.decoration.LeashFenceKnotEntity;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 
 import net.berkle.vanillaplusaccents.entity.VpaEntityTypes;
+import net.berkle.vanillaplusaccents.network.VpaNetworking;
 
 /**
  * Fence-lead rope marker. Not flagged invisible so the client entity pass still
@@ -47,6 +49,7 @@ public class FenceLeadEntity extends Entity implements Leashable {
 
 	private LeashData leashData;
 	private boolean leashApplied;
+	private boolean releasing;
 
 	public FenceLeadEntity(EntityType<?> type, Level level) {
 		super(type, level);
@@ -160,8 +163,36 @@ public class FenceLeadEntity extends Entity implements Leashable {
 
 	@Override
 	public void dropLeash() {
-		// Never spawn a lead item — the lead was already consumed when anchoring.
+		releasing = true;
+		if (level() instanceof ServerLevel serverLevel) {
+			releaseSavedConnection(serverLevel);
+		}
 		removeLeash();
+		discard();
+	}
+
+	/**
+	 * Vanilla shears call {@link #dropLeash()} on everything tied to a knot.
+	 * Drop the consumed lead and forget the saved span so the rope cannot reconnect.
+	 */
+	private void releaseSavedConnection(ServerLevel level) {
+		var dimension = level.dimension().identifier();
+		FenceLeadSavedData data = FenceLeadSavedData.get(level);
+		Optional<BlockPos> to = getTo();
+		BlockPos from = getFrom();
+		if (to.isPresent()) {
+			if (data.removeLink(new FenceLeadLink(dimension, from, to.get()))) {
+				spawnAtLocation(level, Items.LEAD);
+			}
+		} else {
+			getOwnerUuid().ifPresent(id -> {
+				data.clearPending(id);
+				data.clearPendingEntity(id);
+			});
+			spawnAtLocation(level, Items.LEAD);
+		}
+		FenceLeadVisuals.discardKnotsIfUnused(level, from, to.orElse(null));
+		VpaNetworking.syncFenceLeads(level);
 	}
 
 	@Override
@@ -203,7 +234,7 @@ public class FenceLeadEntity extends Entity implements Leashable {
 
 	@Override
 	public void tick() {
-		if (level().isClientSide() || !(level() instanceof ServerLevel serverLevel)) {
+		if (releasing || level().isClientSide() || !(level() instanceof ServerLevel serverLevel)) {
 			return;
 		}
 
