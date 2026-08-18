@@ -185,7 +185,7 @@ public final class FenceLeadVisuals {
 		LeashFenceKnotEntity.getOrCreateKnot(level, pos);
 	}
 
-	private static void discardKnotsIfUnused(ServerLevel level, BlockPos from, BlockPos to) {
+	static void discardKnotsIfUnused(ServerLevel level, BlockPos from, BlockPos to) {
 		if (!isEndpointUsed(level, from)) {
 			discardKnot(level, from);
 		}

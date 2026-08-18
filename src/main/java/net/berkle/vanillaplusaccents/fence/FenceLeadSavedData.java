@@ -101,6 +101,17 @@ public final class FenceLeadSavedData extends SavedData {
 		return removed;
 	}
 
+	/** Remove the unique A↔B link in this dimension, if present. */
+	public boolean removeLink(FenceLeadLink link) {
+		boolean removed = links.removeIf(existing -> existing.dimension().equals(link.dimension())
+			&& existing.involves(link.from())
+			&& existing.involves(link.to()));
+		if (removed) {
+			setDirty();
+		}
+		return removed;
+	}
+
 	/** Drop links whose ends are no longer tagged fences. Skips unloaded chunks (no force-load). */
 	public boolean purgeInvalid(ServerLevel level, Identifier dimension) {
 		boolean changed = false;

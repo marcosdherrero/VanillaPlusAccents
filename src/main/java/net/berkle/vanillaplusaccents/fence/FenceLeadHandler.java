@@ -14,6 +14,7 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Leashable;
 import net.minecraft.world.entity.decoration.LeashFenceKnotEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -30,11 +31,13 @@ import net.berkle.vanillaplusaccents.network.VpaNetworking;
 /**
  * Fence-to-fence leads. A fence may have many links.
  * <ul>
- *   <li>Lead on a fence — consume one lead, start a pending rope to the player</li>
+ *   <li>Leading an animal + right-click fence — hitch that animal (vanilla). Extra leads in hand do not start a rope.</li>
+ *   <li>Lead on a fence while not leading — consume one lead, start a pending rope to the player</li>
  *   <li>Same fence again while pending — cancel and refund</li>
  *   <li>Another fence (≤16) while pending — place that link, then stop (no auto-next rope)</li>
  *   <li>Lead on a fence again — only way to start another rope</li>
  *   <li>Empty hand on a knot — pick up all links on that post</li>
+ *   <li>Shears on a fence or knot — drop every fence-to-fence lead on that post (animals use vanilla shear)</li>
  *   <li>Breaking a linked fence — removes its connections; survival returns leads to inventory, creative drops them as items at the break</li>
  * </ul>
  */
@@ -59,6 +62,12 @@ public final class FenceLeadHandler {
 		ItemStack held = player.getItemInHand(hand);
 
 		if (level.isClientSide()) {
+			if (held.is(Items.SHEARS) && (hasLinksAt(player, level, pos) || knotPresent(level, pos))) {
+				return InteractionResult.SUCCESS;
+			}
+			if (isLeadingAnimal(player)) {
+				return InteractionResult.PASS;
+			}
 			if (hasPendingRope(player, level) || held.is(Items.LEAD) || (held.isEmpty() && hasLinksAt(player, level, pos))) {
 				return InteractionResult.SUCCESS;
 			}
@@ -66,6 +75,14 @@ public final class FenceLeadHandler {
 		}
 
 		if (!(level instanceof ServerLevel serverLevel) || !(player instanceof ServerPlayer serverPlayer)) {
+			return InteractionResult.PASS;
+		}
+
+		if (held.is(Items.SHEARS)) {
+			return tryShear(serverPlayer, serverLevel, hand, pos, held);
+		}
+
+		if (isLeadingAnimal(serverPlayer)) {
 			return InteractionResult.PASS;
 		}
 
@@ -98,6 +115,12 @@ public final class FenceLeadHandler {
 		ItemStack held = player.getItemInHand(hand);
 
 		if (level.isClientSide()) {
+			if (held.is(Items.SHEARS) && (hasLinksAt(player, level, pos) || knotPresent(level, pos))) {
+				return InteractionResult.SUCCESS;
+			}
+			if (isLeadingAnimal(player)) {
+				return InteractionResult.PASS;
+			}
 			if (hasPendingRope(player, level) || held.is(Items.LEAD)) {
 				return InteractionResult.SUCCESS;
 			}
@@ -105,6 +128,14 @@ public final class FenceLeadHandler {
 		}
 
 		if (!(level instanceof ServerLevel serverLevel) || !(player instanceof ServerPlayer serverPlayer)) {
+			return InteractionResult.PASS;
+		}
+
+		if (held.is(Items.SHEARS)) {
+			return tryShear(serverPlayer, serverLevel, hand, pos, held);
+		}
+
+		if (isLeadingAnimal(serverPlayer)) {
 			return InteractionResult.PASS;
 		}
 
@@ -143,6 +174,82 @@ public final class FenceLeadHandler {
 			entity -> !entity.isPending()
 				&& (entity.getFrom().equals(pos) || entity.getTo().filter(pos::equals).isPresent())
 		).isEmpty();
+	}
+
+	/**
+	 * True when the player is holding a real leashed mob — not a pending fence-rope marker.
+	 * Hitching that animal takes priority over starting a fence-to-fence span.
+	 */
+	private static boolean isLeadingAnimal(Player player) {
+		for (Leashable leashable : Leashable.leashableLeashedTo(player)) {
+			if (leashable instanceof FenceLeadEntity) {
+				continue;
+			}
+			if (leashable instanceof Entity entity && entity.isAlive()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean knotPresent(Level level, BlockPos pos) {
+		return LeashFenceKnotEntity.getKnot(level, pos).isPresent();
+	}
+
+	/**
+	 * Shears drop every fence-to-fence lead on this post, then vanilla-cut any animals
+	 * still tied to the knot. Item-frame / plant shear behavior is untouched.
+	 */
+	private static InteractionResult tryShear(
+		ServerPlayer player,
+		ServerLevel level,
+		InteractionHand hand,
+		BlockPos pos,
+		ItemStack held
+	) {
+		if (!level.getBlockState(pos).is(BlockTags.FENCES) || !held.is(Items.SHEARS)) {
+			return InteractionResult.PASS;
+		}
+
+		FenceLeadSavedData data = FenceLeadSavedData.get(level);
+		var dimension = level.dimension().identifier();
+
+		List<UUID> pendingOwners = new ArrayList<>();
+		for (var entry : data.pendingEntries()) {
+			FenceLeadSavedData.PendingLink pending = entry.getValue();
+			if (pending.dimension().equals(dimension) && pending.pos().equals(pos)) {
+				pendingOwners.add(entry.getKey());
+			}
+		}
+		int pendingRemoved = data.clearPendingAt(dimension, pos);
+		for (UUID ownerId : pendingOwners) {
+			ServerPlayer owner = level.getServer().getPlayerList().getPlayer(ownerId);
+			if (owner != null) {
+				FenceLeadVisuals.clearPendingFor(owner);
+			}
+		}
+
+		int removed = data.removeLinksAt(dimension, pos);
+		FenceLeadVisuals.removeLinksAt(level, pos);
+
+		boolean animals = LeashFenceKnotEntity.getKnot(level, pos)
+			.map(knot -> knot.shearOffAllLeashConnections(player))
+			.orElse(false);
+
+		int leadCount = removed + pendingRemoved;
+		if (leadCount <= 0 && !animals) {
+			return InteractionResult.PASS;
+		}
+
+		if (leadCount > 0) {
+			Block.popResource(level, pos, new ItemStack(Items.LEAD, leadCount));
+			FenceLeadVisuals.resync(level);
+			VpaNetworking.syncFenceLeads(level);
+			level.playSound(null, pos, SoundEvents.LEAD_UNTIED, SoundSource.BLOCKS, 1.0f, 1.0f);
+		}
+
+		held.hurtAndBreak(1, player, hand.asEquipmentSlot());
+		return InteractionResult.SUCCESS_SERVER;
 	}
 
 	private static InteractionResult tryPickup(ServerPlayer player, ServerLevel level, BlockPos pos) {
