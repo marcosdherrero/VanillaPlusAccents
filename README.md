@@ -143,7 +143,7 @@ All operator settings are world-wide (shared across dimensions via overworld Sav
 2. Drop [Fabric API](https://modrinth.com/mod/fabric-api) into your `mods` folder
 3. Drop the release jar from [`jars/`](jars/) into `mods`
 
-Current release: [`jars/vanillaplusaccents-1.0.2-Minecraft26.1.2.jar`](jars/vanillaplusaccents-1.0.2-Minecraft26.1.2.jar)
+Current release: [`jars/vanillaplusaccents-1.0.3-Minecraft26.1.2.jar`](jars/vanillaplusaccents-1.0.3-Minecraft26.1.2.jar)
 
 ## Build
 
@@ -151,12 +151,12 @@ Current release: [`jars/vanillaplusaccents-1.0.2-Minecraft26.1.2.jar`](jars/vani
 ./gradlew build
 ```
 
-Output: `build/libs/vanillaplusaccents-1.0.2-Minecraft26.1.2.jar`
+Output: `build/libs/vanillaplusaccents-1.0.3-Minecraft26.1.2.jar`
 
 Copy a release into `jars/` when publishing:
 
 ```powershell
-Copy-Item build\libs\vanillaplusaccents-1.0.2-Minecraft26.1.2.jar jars\ -Force
+Copy-Item build\libs\vanillaplusaccents-1.0.3-Minecraft26.1.2.jar jars\ -Force
 ```
 
 ## Development
