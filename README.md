@@ -4,7 +4,7 @@
 
 # Vanilla Plus Accents
 
-Small vanilla-friendly quality-of-life accents for Minecraft **Java Edition 26.2** (Fabric).
+Small vanilla-friendly quality-of-life accents for Minecraft **Java Edition 26.2** (Fabric). Player and developer notes for each version: [Changelog](CHANGELOG.md).
 
 ![Flower patches and seating by the water](docs/images/flower-patches-and-seating.png)
 
@@ -172,6 +172,10 @@ Copy-Item build\libs\vanillaplusaccents-1.0.5-Minecraft26.2.jar jars\ -Force
 ## Development
 
 - **Woodcutting:** recipes are generated in code (`WoodcuttingRecipes`) from item-id conventions when the recipe manager reloads — no per-wood JSON required.
+
+## Changelog
+
+What changed in 1.0.1–1.0.5 (flush signs, flower spacing, fence-lead hitching/catenaries, woodcutting, the 26.2 port) is in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
