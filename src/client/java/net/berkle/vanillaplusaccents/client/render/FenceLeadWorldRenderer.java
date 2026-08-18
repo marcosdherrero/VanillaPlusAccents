@@ -7,7 +7,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
@@ -86,8 +85,8 @@ public final class FenceLeadWorldRenderer {
 		state.end = end;
 		state.slack = true;
 
-		int startPacked = LevelRenderer.getLightCoords(level, BlockPos.containing(start));
-		int endPacked = LevelRenderer.getLightCoords(level, BlockPos.containing(end));
+		int startPacked = LightCoordsUtil.getLightCoords(level, BlockPos.containing(start));
+		int endPacked = LightCoordsUtil.getLightCoords(level, BlockPos.containing(end));
 		state.startBlockLight = LightCoordsUtil.block(startPacked);
 		state.startSkyLight = LightCoordsUtil.sky(startPacked);
 		state.endBlockLight = LightCoordsUtil.block(endPacked);

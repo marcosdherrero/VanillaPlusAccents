@@ -6,11 +6,12 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.player.Player;
 
 /**
  * Vanilla {@link Entity#startRiding} rejects non-serializable vehicles on the server.
- * {@link EntityType#PLAYER} is not saved, so player-on-player piggyback always fails without this.
+ * {@link EntityTypes#PLAYER} is not saved, so player-on-player piggyback always fails without this.
  */
 @Mixin(Entity.class)
 public abstract class EntityPiggybackRideMixin {
@@ -24,7 +25,7 @@ public abstract class EntityPiggybackRideMixin {
 	)
 	private boolean vpa$allowPlayerPiggybackVehicle(EntityType<?> vehicleType) {
 		Entity passenger = (Entity) (Object) this;
-		if (vehicleType == EntityType.PLAYER && passenger instanceof Player) {
+		if (vehicleType == EntityTypes.PLAYER && passenger instanceof Player) {
 			return true;
 		}
 		return vehicleType.canSerialize();

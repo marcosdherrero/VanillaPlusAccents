@@ -89,7 +89,7 @@ public final class FlowerPatchRenderer implements BlockEntityRenderer<FlowerPatc
 			poseStack.mulPose(Axis.YP.rotationDegrees(placement.yawDegrees()));
 			poseStack.mulPose(Axis.ZP.rotationDegrees(placement.leanDegrees()));
 			poseStack.translate(-0.5, 0.0, -0.5);
-			submitNodeCollector.submitMovingBlock(poseStack, state.movingBlock);
+			submitNodeCollector.submitMovingBlock(poseStack, state.movingBlock, 0);
 			poseStack.popPose();
 		}
 	}

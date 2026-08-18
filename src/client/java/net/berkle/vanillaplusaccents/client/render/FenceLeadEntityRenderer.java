@@ -8,7 +8,6 @@ import java.util.UUID;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
@@ -61,8 +60,8 @@ public final class FenceLeadEntityRenderer extends EntityRenderer<FenceLeadEntit
 		leash.end = end;
 		leash.slack = true;
 
-		int startPacked = LevelRenderer.getLightCoords(entity.level(), BlockPos.containing(start));
-		int endPacked = LevelRenderer.getLightCoords(entity.level(), BlockPos.containing(end));
+		int startPacked = LightCoordsUtil.getLightCoords(entity.level(), BlockPos.containing(start));
+		int endPacked = LightCoordsUtil.getLightCoords(entity.level(), BlockPos.containing(end));
 		leash.startBlockLight = LightCoordsUtil.block(startPacked);
 		leash.startSkyLight = LightCoordsUtil.sky(startPacked);
 		leash.endBlockLight = LightCoordsUtil.block(endPacked);
