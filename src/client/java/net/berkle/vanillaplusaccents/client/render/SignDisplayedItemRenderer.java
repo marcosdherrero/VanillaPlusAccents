@@ -23,8 +23,13 @@ public final class SignDisplayedItemRenderer {
 	private static final float STANDING_TEXT_SCALE = 0.010416667f;
 	/** Hanging sign text scale. */
 	private static final float HANGING_TEXT_SCALE = 0.0140625f;
-	/** One block pixel in front of the sign board. */
-	private static final float ITEM_SURFACE_OFFSET = 0.0625f;
+	/**
+	 * Extra Z in block space after the vanilla text pose.
+	 * {@code StandingSignRenderer.TEXT_OFFSET} is already {@code (0, 0.33333334, 0.046666667)}
+	 * and hanging is {@code (0, -0.32, 0.073)} — that plane sits on the 2-pixel-thick board.
+	 * A 1-pixel ({@code 0.0625}) push left a visible gap in front of the face.
+	 */
+	private static final float ITEM_SURFACE_OFFSET = 0.0f;
 	/** Default item size, matching item frames ({@code 0.5} blocks). */
 	private static final float ITEM_DISPLAY_SCALE = 0.5f;
 	private static final int TEXT_LINE_COUNT = 4;
