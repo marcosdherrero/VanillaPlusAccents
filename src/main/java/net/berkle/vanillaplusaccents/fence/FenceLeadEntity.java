@@ -112,6 +112,13 @@ public class FenceLeadEntity extends Entity implements Leashable {
 		return new Vec3(pos.getX() + 0.5, pos.getY() + ATTACH_Y, pos.getZ() + 0.5);
 	}
 
+	/** Prefer the live knot hold so the ribbon meets the tie; fall back to the fence center. */
+	public static Vec3 attachPoint(Level level, BlockPos pos) {
+		return LeashFenceKnotEntity.getKnot(level, pos)
+			.map(knot -> knot.getRopeHoldPosition(1.0f))
+			.orElseGet(() -> attachPoint(pos));
+	}
+
 	public boolean matches(FenceLeadLink link) {
 		Optional<BlockPos> to = getTo();
 		if (to.isEmpty()) {
@@ -219,22 +226,59 @@ public class FenceLeadEntity extends Entity implements Leashable {
 		return distance < 96.0 * 96.0;
 	}
 
+	/** True when this marker will submit a completed span (DATA_TO present, in range, not culled). */
+	public boolean isDrawingCompleted(Vec3 cameraPos) {
+		if (!isPrimaryCompleted() || isRemoved()) {
+			return false;
+		}
+		return shouldRenderAtSqrDistance(distanceToSqr(cameraPos));
+	}
+
 	@Override
 	public boolean isPickable() {
 		return false;
 	}
 
 	@Override
+	public boolean shouldBeSaved() {
+		return super.shouldBeSaved() && isPrimaryCompleted();
+	}
+
+	@Override
 	protected void readAdditionalSaveData(ValueInput input) {
+		BlockPos from = BlockPos.of(input.getLongOr("From", BlockPos.ZERO.asLong()));
+		if (input.getBooleanOr("Completed", false)) {
+			setCompleted(from, BlockPos.of(input.getLongOr("To", from.asLong())));
+			return;
+		}
+		long ownerMsb = input.getLongOr("OwnerMsb", 0L);
+		long ownerLsb = input.getLongOr("OwnerLsb", 0L);
+		if (input.getBooleanOr("HasOwner", false)) {
+			setPending(from, new UUID(ownerMsb, ownerLsb));
+		}
 	}
 
 	@Override
 	protected void addAdditionalSaveData(ValueOutput output) {
+		output.putLong("From", getFrom().asLong());
+		boolean completed = isPrimaryCompleted();
+		output.putBoolean("Completed", completed);
+		getTo().ifPresent(to -> output.putLong("To", to.asLong()));
+		getOwnerUuid().ifPresent(owner -> {
+			output.putBoolean("HasOwner", true);
+			output.putLong("OwnerMsb", owner.getMostSignificantBits());
+			output.putLong("OwnerLsb", owner.getLeastSignificantBits());
+		});
 	}
 
 	@Override
 	public void tick() {
 		if (releasing || level().isClientSide() || !(level() instanceof ServerLevel serverLevel)) {
+			return;
+		}
+
+		if (isPending() && getOwnerUuid().isEmpty()) {
+			discard();
 			return;
 		}
 

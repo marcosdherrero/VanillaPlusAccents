@@ -1,8 +1,8 @@
 # Changelog
 
-Newest first. Jars look like `vanillaplusaccents-1.0.5-Minecraft26.2.jar`. GitHub tags look like `v1.0.5-mc26.2`.
+Newest first. Jars look like `vanillaplusaccents-1.0.6-Minecraft26.2.jar`. GitHub tags look like `v1.0.6-mc26.2`.
 
-Do not treat 1.0.6 / 1.0.7 as released — **1.0.5** is the current 26.2 patch.
+Do not treat 1.0.7 as released — **1.0.6** is the current 26.2 patch.
 
 ## Minecraft version notes
 
@@ -11,7 +11,7 @@ Vanilla Plus Accents started on **Minecraft 26.1.2** (official Mojang names, Jav
 **For players / pack makers:**
 
 - Use the jar whose Minecraft number matches the instance.
-- **1.0.5 exists for 26.2 only.** On 26.1.2 the latest tagged build is **1.0.4**.
+- **1.0.6 exists for 26.2 only.** On 26.1.2 the latest tagged build is **1.0.4**.
 - 26.2 needed extra renderer work so sign items stay flush, flower stems stay spaced, and fence ropes match animal-lead rib spacing. Gameplay commands and recipes stay the same idea as 26.1.2.
 
 **For developers (code / API):**
@@ -24,6 +24,25 @@ Vanilla Plus Accents started on **Minecraft 26.1.2** (official Mojang names, Jav
 ---
 
 ## Mod versions
+
+### 1.0.6 (Minecraft 26.2)
+
+GitHub: [v1.0.6-mc26.2](https://github.com/marcosdherrero/VanillaPlusAccents/releases/tag/v1.0.6-mc26.2) · jar `vanillaplusaccents-1.0.6-Minecraft26.2.jar`
+
+Bugfix over 1.0.5 on 26.2.
+
+**For players:**
+
+- Fence-to-fence leads stay visible after looking away, walking off, chunk reload, and world rejoin. You no longer need to right-click a fence with a lead to make the ropes come back.
+- The brown **ties (knots)** on each post come back after reconnect. Ropes meet those ties instead of ending in mid-air.
+- Knots stay as long as a decorative span (or a hitched animal) is still on that post. They still disappear when the last span and last animal are gone.
+- Starting a new rope is unchanged: lead an animal first to hitch it; otherwise a lead on a fence starts a pending rope.
+
+**For developers:**
+
+- Join/dimension sync sends `SyncFenceLeadsPayload` after the play handler is ready (`server.execute`); chunk load respawns markers and knots. SavedData remains the source of truth.
+- `LeashFenceKnotEntityMixin` cancels `notifyLeasheeRemoved` while `FenceLeadVisuals.isKnotNeeded` (SavedData link or pending). Vanilla still discards empty knots with no VPA link.
+- Completed `FenceLeadEntity` markers persist (`shouldBeSaved`); pending markers do not. Backup world renderer skips only when `isDrawingCompleted` (in-range + `DATA_TO` present), not merely because a matching entity is in the camera AABB. Entity renderer sets `affectedByCulling` false so looking away from the from-post still submits the span.
 
 ### 1.0.5 (Minecraft 26.2)
 

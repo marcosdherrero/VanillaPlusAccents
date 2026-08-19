@@ -13,6 +13,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Leashable;
 import net.minecraft.world.entity.decoration.LeashFenceKnotEntity;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.entity.EntityTypeTest;
 
 import net.berkle.vanillaplusaccents.VanillaPlusAccentsMain;
@@ -50,22 +51,47 @@ public final class FenceLeadVisuals {
 				safeRemoveLeash(entity);
 				entity.discard();
 				discardKnotsIfUnused(level, from, to);
+			} else if (!matched.add(match)) {
+				safeRemoveLeash(entity);
+				entity.discard();
 			} else {
-				matched.add(match);
 				ensureKnotsIfLoaded(level, match.from(), match.to());
 			}
 		}
 
 		for (FenceLeadLink link : links) {
+			ensureKnotsIfLoaded(level, link.from(), link.to());
 			if (!isChunkLoaded(level, link.from()) || !isChunkLoaded(level, link.to())) {
 				continue;
 			}
 			if (!matched.contains(link)) {
 				spawnLink(level, link);
-			} else {
-				ensureKnots(level, link.from(), link.to());
 			}
 		}
+	}
+
+	/** Spawn missing markers/knots for saved links that touch this chunk. */
+	public static void ensureLinksInChunk(ServerLevel level, ChunkPos chunkPos) {
+		Identifier dimension = level.dimension().identifier();
+		for (FenceLeadLink link : FenceLeadSavedData.get(level).linksFor(dimension)) {
+			boolean fromHere = inChunk(chunkPos, link.from());
+			boolean toHere = inChunk(chunkPos, link.to());
+			if (!fromHere && !toHere) {
+				continue;
+			}
+			ensureKnotsIfLoaded(level, link.from(), link.to());
+			if (!isChunkLoaded(level, link.from()) || !isChunkLoaded(level, link.to())) {
+				continue;
+			}
+			if (!hasCompletedMarker(level, link)) {
+				spawnLink(level, link);
+			}
+		}
+	}
+
+	/** True when SavedData still needs a visible knot on this post. */
+	public static boolean isKnotNeeded(ServerLevel level, BlockPos pos) {
+		return isEndpointUsed(level, pos);
 	}
 
 	/** Re-create knots for saved links whose chunks are already loaded. */
@@ -77,9 +103,22 @@ public final class FenceLeadVisuals {
 	}
 
 	private static void ensureKnotsIfLoaded(ServerLevel level, BlockPos a, BlockPos b) {
-		if (isChunkLoaded(level, a) && isChunkLoaded(level, b)) {
-			ensureKnots(level, a, b);
+		if (isChunkLoaded(level, a)) {
+			ensureKnot(level, a);
 		}
+		if (isChunkLoaded(level, b)) {
+			ensureKnot(level, b);
+		}
+	}
+
+	private static boolean inChunk(ChunkPos chunkPos, BlockPos pos) {
+		return chunkPos.contains(pos);
+	}
+
+	private static boolean hasCompletedMarker(ServerLevel level, FenceLeadLink link) {
+		List<FenceLeadEntity> existing = new ArrayList<>();
+		level.getEntities(EntityTypeTest.forClass(FenceLeadEntity.class), entity -> entity.matches(link), existing);
+		return !existing.isEmpty();
 	}
 
 	private static boolean isChunkLoaded(ServerLevel level, BlockPos pos) {

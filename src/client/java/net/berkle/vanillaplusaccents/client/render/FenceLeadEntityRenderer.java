@@ -10,12 +10,14 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -36,6 +38,33 @@ public final class FenceLeadEntityRenderer extends EntityRenderer<FenceLeadEntit
 	}
 
 	@Override
+	protected boolean affectedByCulling(FenceLeadEntity entity) {
+		return false;
+	}
+
+	@Override
+	protected AABB getBoundingBoxForCulling(FenceLeadEntity entity) {
+		if (!entity.isPrimaryCompleted()) {
+			return super.getBoundingBoxForCulling(entity);
+		}
+		return new AABB(
+			FenceLeadEntity.attachPoint(entity.getFrom()),
+			FenceLeadEntity.attachPoint(entity.getTo().orElse(entity.getFrom()))
+		).inflate(0.5);
+	}
+
+	@Override
+	public boolean shouldRender(FenceLeadEntity entity, Frustum frustum, double camX, double camY, double camZ) {
+		if (!entity.shouldRender(camX, camY, camZ)) {
+			return false;
+		}
+		if (entity.isPending() || entity.isPrimaryCompleted()) {
+			return true;
+		}
+		return super.shouldRender(entity, frustum, camX, camY, camZ);
+	}
+
+	@Override
 	public FenceLeadRenderState createRenderState() {
 		return new FenceLeadRenderState();
 	}
@@ -45,18 +74,19 @@ public final class FenceLeadEntityRenderer extends EntityRenderer<FenceLeadEntit
 		super.extractRenderState(entity, state, partialTick);
 
 		Optional<BlockPos> to = entity.getTo();
-		Vec3 start = FenceLeadEntity.attachPoint(entity.getFrom());
 		Vec3 origin = entity.getPosition(partialTick);
 		state.completed = false;
-		state.start = start;
+		state.start = Vec3.ZERO;
 		state.end = Vec3.ZERO;
 		if (!(entity.level() instanceof ClientLevel clientLevel)) {
 			state.leashStates = null;
 			return;
 		}
+		Vec3 start = FenceLeadEntity.attachPoint(clientLevel, entity.getFrom());
+		state.start = start;
 		if (to.isPresent()) {
 			state.completed = true;
-			state.end = FenceLeadEntity.attachPoint(to.get());
+			state.end = FenceLeadEntity.attachPoint(clientLevel, to.get());
 			state.leashStates = null;
 			return;
 		}

@@ -153,7 +153,7 @@ All operator settings are world-wide (shared across dimensions via overworld Sav
 2. Drop [Fabric API](https://modrinth.com/mod/fabric-api) into your `mods` folder
 3. Drop the release jar from [`jars/`](jars/) into `mods`
 
-Current release: [`jars/vanillaplusaccents-1.0.5-Minecraft26.2.jar`](jars/vanillaplusaccents-1.0.5-Minecraft26.2.jar)
+Current release: [`jars/vanillaplusaccents-1.0.6-Minecraft26.2.jar`](jars/vanillaplusaccents-1.0.6-Minecraft26.2.jar)
 
 ## Build
 
@@ -161,12 +161,12 @@ Current release: [`jars/vanillaplusaccents-1.0.5-Minecraft26.2.jar`](jars/vanill
 ./gradlew build
 ```
 
-Output: `build/libs/vanillaplusaccents-1.0.5-Minecraft26.2.jar`
+Output: `build/libs/vanillaplusaccents-1.0.6-Minecraft26.2.jar`
 
 Copy a release into `jars/` when publishing:
 
 ```powershell
-Copy-Item build\libs\vanillaplusaccents-1.0.5-Minecraft26.2.jar jars\ -Force
+Copy-Item build\libs\vanillaplusaccents-1.0.6-Minecraft26.2.jar jars\ -Force
 ```
 
 ## Development
@@ -175,7 +175,7 @@ Copy-Item build\libs\vanillaplusaccents-1.0.5-Minecraft26.2.jar jars\ -Force
 
 ## Changelog
 
-What changed in 1.0.1–1.0.5 (flush signs, flower spacing, fence-lead hitching/catenaries, woodcutting, the 26.2 port) is in [CHANGELOG.md](CHANGELOG.md).
+What changed in 1.0.1–1.0.6 (fence-lead visibility, flush signs, flower spacing, hitching/catenaries, woodcutting, the 26.2 port) is in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

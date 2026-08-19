@@ -18,10 +18,13 @@ import net.berkle.vanillaplusaccents.fence.FenceLeadEntity;
 import net.berkle.vanillaplusaccents.fence.FenceLeadLink;
 
 /**
- * Backup rope submit for saved links whose marker entity has not arrived on the client yet.
- * Pending ropes and live entities are rendered only by {@link FenceLeadEntityRenderer}.
+ * Backup rope submit for saved links the entity pass is not actually drawing.
+ * Skip only when a matching completed marker is in range and will submit;
+ * a live entity in the camera AABB is not enough (frustum / empty DATA_TO).
  */
 public final class FenceLeadWorldRenderer {
+
+	private static final double DRAW_RANGE_SQR = 96.0 * 96.0;
 
 	private FenceLeadWorldRenderer() {
 	}
@@ -50,11 +53,16 @@ public final class FenceLeadWorldRenderer {
 		List<FenceLeadEntity> live = level.getEntitiesOfClass(
 			FenceLeadEntity.class,
 			new AABB(cameraPos, cameraPos).inflate(96.0),
-			entity -> !entity.isPending()
+			entity -> entity.isPrimaryCompleted()
 		);
 
 		for (FenceLeadLink link : links) {
-			if (live.stream().anyMatch(entity -> entity.matches(link))) {
+			Vec3 start = FenceLeadEntity.attachPoint(level, link.from());
+			Vec3 end = FenceLeadEntity.attachPoint(level, link.to());
+			if (start.distanceToSqr(cameraPos) > DRAW_RANGE_SQR && end.distanceToSqr(cameraPos) > DRAW_RANGE_SQR) {
+				continue;
+			}
+			if (live.stream().anyMatch(entity -> entity.matches(link) && entity.isDrawingCompleted(cameraPos))) {
 				continue;
 			}
 			FenceLeadRender.submitCompleted(
@@ -62,8 +70,8 @@ public final class FenceLeadWorldRenderer {
 				poseStack,
 				collector,
 				cameraPos,
-				FenceLeadEntity.attachPoint(link.from()),
-				FenceLeadEntity.attachPoint(link.to())
+				start,
+				end
 			);
 		}
 	}
