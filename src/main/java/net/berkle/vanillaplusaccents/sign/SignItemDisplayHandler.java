@@ -1,6 +1,5 @@
 package net.berkle.vanillaplusaccents.sign;
 
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -11,12 +10,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
-import net.minecraft.world.level.block.entity.SignText;
 import net.minecraft.world.phys.BlockHitResult;
 
 import net.berkle.vanillaplusaccents.accessor.SignBlockEntityAccess;
 
-/** Place or remove items on empty signs like item frames. */
+/** Place or remove items on empty signs like item frames. Sign items display instead of opening the editor. */
 public final class SignItemDisplayHandler {
 
 	private SignItemDisplayHandler() {
@@ -28,7 +26,7 @@ public final class SignItemDisplayHandler {
 		InteractionHand hand,
 		BlockHitResult hitResult
 	) {
-		if (!(level instanceof ServerLevel) || hand != InteractionHand.MAIN_HAND) {
+		if (hand != InteractionHand.MAIN_HAND) {
 			return InteractionResult.PASS;
 		}
 
@@ -38,7 +36,7 @@ public final class SignItemDisplayHandler {
 		}
 
 		SignBlockEntity sign = (SignBlockEntity) blockEntity;
-		if (!isEmptySign(sign)) {
+		if (!SignSupport.isEmptySign(sign)) {
 			return InteractionResult.PASS;
 		}
 
@@ -50,6 +48,9 @@ public final class SignItemDisplayHandler {
 			if (!access.vpa$hasDisplayedItem(front)) {
 				return InteractionResult.PASS;
 			}
+			if (level.isClientSide()) {
+				return InteractionResult.SUCCESS;
+			}
 			ItemStack removed = access.vpa$getDisplayedItem(front).copy();
 			access.vpa$setDisplayedItem(front, ItemStack.EMPTY);
 			if (!player.getInventory().add(removed)) {
@@ -59,11 +60,15 @@ public final class SignItemDisplayHandler {
 			return InteractionResult.SUCCESS;
 		}
 
-		if (SignSupport.isSignPlacementItem(held)) {
+		if (SignSupport.isSignTextTool(held) || access.vpa$hasDisplayedItem(front)) {
 			return InteractionResult.PASS;
 		}
 
-		if (access.vpa$hasDisplayedItem(front)) {
+		if (level.isClientSide()) {
+			return InteractionResult.SUCCESS;
+		}
+
+		if (!(level instanceof ServerLevel)) {
 			return InteractionResult.PASS;
 		}
 
@@ -73,18 +78,5 @@ public final class SignItemDisplayHandler {
 		}
 		level.playSound(null, sign.getBlockPos(), SoundEvents.ITEM_FRAME_ADD_ITEM, SoundSource.BLOCKS, 1.0f, 1.0f);
 		return InteractionResult.SUCCESS;
-	}
-
-	private static boolean isEmptySign(SignBlockEntity sign) {
-		return isBlank(sign.getFrontText()) && isBlank(sign.getBackText());
-	}
-
-	private static boolean isBlank(SignText text) {
-		for (Component line : text.getMessages(false)) {
-			if (line != null && !line.getString().isEmpty()) {
-				return false;
-			}
-		}
-		return true;
 	}
 }

@@ -1,7 +1,9 @@
 package net.berkle.vanillaplusaccents.fence;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import net.minecraft.core.BlockPos;
@@ -17,6 +19,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Leashable;
 import net.minecraft.world.entity.decoration.LeashFenceKnotEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -33,17 +36,19 @@ import net.berkle.vanillaplusaccents.network.VpaNetworking;
  * <ul>
  *   <li>Leading an animal + right-click fence — hitch that animal (vanilla). Extra leads in hand do not start a rope.</li>
  *   <li>Lead on a fence while not leading — consume one lead, start a pending rope to the player</li>
- *   <li>Same fence again while pending — cancel and refund</li>
- *   <li>Another fence (≤16) while pending — place that link, then stop (no auto-next rope)</li>
+ *   <li>Any fence while pending (including the grabbed hub) — place every remaining span ≤16 from dest</li>
+ *   <li>A dest with no in-range spans — refund leftovers (too far). Origin-click is not cancel</li>
  *   <li>Lead on a fence again — only way to start another rope</li>
- *   <li>Empty hand on a knot — pick up all links on that post</li>
+ *   <li>Empty hand on a fence with VPA links — regrab those already-paid ropes (no inventory refund)</li>
  *   <li>Shears on a fence or knot — drop every fence-to-fence lead on that post (animals use vanilla shear)</li>
- *   <li>Breaking a linked fence — removes its connections; survival returns leads to inventory, creative drops them as items at the break</li>
+ *   <li>Breaking a linked fence — removes its connections; leads always drop as items at the broken post</li>
  * </ul>
  */
 public final class FenceLeadHandler {
 
 	public static final int MAX_RANGE = 16;
+	private static final int CONNECT_SUPPRESS_TICKS = 2;
+	private static final Map<UUID, Long> connectSuppressUntil = new HashMap<>();
 
 	private FenceLeadHandler() {
 	}
@@ -60,6 +65,9 @@ public final class FenceLeadHandler {
 		}
 		BlockPos pos = knot.getPos();
 		ItemStack held = player.getItemInHand(hand);
+		if (isPlacingBlock(held)) {
+			return InteractionResult.PASS;
+		}
 
 		if (level.isClientSide()) {
 			if (held.is(Items.SHEARS) && (hasLinksAt(player, level, pos) || knotPresent(level, pos))) {
@@ -90,12 +98,16 @@ public final class FenceLeadHandler {
 			return finishPending(serverPlayer, serverLevel, hand, pos, held);
 		}
 
+		if (isConnectSuppressed(serverPlayer, serverLevel)) {
+			return InteractionResult.SUCCESS_SERVER;
+		}
+
 		if (held.is(Items.LEAD)) {
 			return startPending(serverPlayer, serverLevel, hand, pos, held);
 		}
 
 		if (held.isEmpty()) {
-			return tryPickup(serverPlayer, serverLevel, pos);
+			return tryRegrab(serverPlayer, serverLevel, pos);
 		}
 
 		return InteractionResult.PASS;
@@ -113,6 +125,9 @@ public final class FenceLeadHandler {
 		}
 
 		ItemStack held = player.getItemInHand(hand);
+		if (isPlacingBlock(held)) {
+			return InteractionResult.PASS;
+		}
 
 		if (level.isClientSide()) {
 			if (held.is(Items.SHEARS) && (hasLinksAt(player, level, pos) || knotPresent(level, pos))) {
@@ -121,7 +136,7 @@ public final class FenceLeadHandler {
 			if (isLeadingAnimal(player)) {
 				return InteractionResult.PASS;
 			}
-			if (hasPendingRope(player, level) || held.is(Items.LEAD)) {
+			if (hasPendingRope(player, level) || held.is(Items.LEAD) || (held.isEmpty() && hasLinksAt(player, level, pos))) {
 				return InteractionResult.SUCCESS;
 			}
 			return InteractionResult.PASS;
@@ -143,11 +158,24 @@ public final class FenceLeadHandler {
 			return finishPending(serverPlayer, serverLevel, hand, pos, held);
 		}
 
+		if (isConnectSuppressed(serverPlayer, serverLevel)) {
+			return InteractionResult.SUCCESS_SERVER;
+		}
+
 		if (held.is(Items.LEAD)) {
 			return startPending(serverPlayer, serverLevel, hand, pos, held);
 		}
 
+		if (held.isEmpty()) {
+			return tryRegrab(serverPlayer, serverLevel, pos);
+		}
+
 		return InteractionResult.PASS;
+	}
+
+	/** Fence / any block item must reach vanilla place (and BLOCK_WOOD_PLACE). */
+	private static boolean isPlacingBlock(ItemStack held) {
+		return held.getItem() instanceof BlockItem;
 	}
 
 	private static boolean hasPendingRope(Player player, Level level) {
@@ -217,7 +245,7 @@ public final class FenceLeadHandler {
 		List<UUID> pendingOwners = new ArrayList<>();
 		for (var entry : data.pendingEntries()) {
 			FenceLeadSavedData.PendingLink pending = entry.getValue();
-			if (pending.dimension().equals(dimension) && pending.pos().equals(pos)) {
+			if (pending.dimension().equals(dimension) && pending.hasFarEnd(pos)) {
 				pendingOwners.add(entry.getKey());
 			}
 		}
@@ -252,27 +280,54 @@ public final class FenceLeadHandler {
 		return InteractionResult.SUCCESS_SERVER;
 	}
 
-	private static InteractionResult tryPickup(ServerPlayer player, ServerLevel level, BlockPos pos) {
+	/**
+	 * Empty-hand: detach this end of every link. Other ends stay; player holds those free ends.
+	 * No inventory refund. Next dest click reties the whole bundle at once.
+	 */
+	private static InteractionResult tryRegrab(ServerPlayer player, ServerLevel level, BlockPos pos) {
 		if (!level.getBlockState(pos).is(BlockTags.FENCES)) {
 			return InteractionResult.PASS;
 		}
 
 		FenceLeadSavedData data = FenceLeadSavedData.get(level);
 		var dimension = level.dimension().identifier();
-		int removed = data.removeLinksAt(dimension, pos);
-		if (removed <= 0) {
+		List<FenceLeadLink> atPost = data.linksAt(dimension, pos);
+		if (atPost.isEmpty()) {
 			return InteractionResult.PASS;
 		}
 
-		FenceLeadVisuals.clearPendingFor(player);
+		List<BlockPos> farEnds = new ArrayList<>();
+		for (FenceLeadLink link : atPost) {
+			BlockPos other = link.other(pos);
+			if (!other.equals(pos) && !farEnds.contains(other)) {
+				farEnds.add(other);
+			}
+		}
+		if (farEnds.isEmpty()) {
+			return InteractionResult.PASS;
+		}
+
+		data.removeLinksAt(dimension, pos);
 		FenceLeadVisuals.removeLinksAt(level, pos);
 		FenceLeadVisuals.resync(level);
-
-		if (!player.getAbilities().instabuild) {
-			giveLeads(player, InteractionHand.MAIN_HAND, removed);
-		}
+		data.setPending(player.getUUID(), dimension, pos, farEnds);
+		FenceLeadVisuals.spawnPending(level, player, farEnds);
 		level.playSound(null, pos, SoundEvents.LEAD_UNTIED, SoundSource.BLOCKS, 1.0f, 1.0f);
 		VpaNetworking.syncFenceLeads(level);
+		int remaining = farEnds.size();
+		if (remaining == 1) {
+			player.sendSystemMessage(
+				Component.literal("Lead untied — right-click a fence to reconnect."),
+				true
+			);
+		} else {
+			player.sendSystemMessage(
+				Component.literal("Untied " + remaining + " leads — right-click a fence to reconnect them all."),
+				true
+			);
+		}
+		// Same-click must not immediately retie; a later click on this post is a real dest.
+		suppressConnect(player, level);
 		return InteractionResult.SUCCESS_SERVER;
 	}
 
@@ -287,6 +342,8 @@ public final class FenceLeadHandler {
 		if (!player.getAbilities().instabuild) {
 			held.shrink(1);
 		}
+		// Clean leftover knots before pending registers this post, or a fake knot is kept.
+		FenceLeadVisuals.discardUnusedKnots(level);
 		FenceLeadSavedData.get(level).setPending(player.getUUID(), level.dimension().identifier(), pos);
 		FenceLeadVisuals.spawnPending(level, player, pos);
 		level.playSound(null, pos, SoundEvents.LEAD_TIED, SoundSource.BLOCKS, 1.0f, 1.2f);
@@ -295,10 +352,11 @@ public final class FenceLeadHandler {
 			Component.literal("Lead anchored — right-click another fence (empty hand is fine)."),
 			true
 		);
+		suppressConnect(player, level);
 		return InteractionResult.SUCCESS_SERVER;
 	}
 
-	/** Finish or cancel the current pending rope. Does not start another. */
+	/** Place every remaining span on dest in one click. Dest may be the original hub. */
 	private static InteractionResult finishPending(
 		ServerPlayer player,
 		ServerLevel level,
@@ -313,23 +371,33 @@ public final class FenceLeadHandler {
 			return InteractionResult.PASS;
 		}
 
-		if (pending.pos().equals(pos)) {
-			data.clearPending(player.getUUID());
-			FenceLeadVisuals.clearPendingFor(player);
-			if (!player.getAbilities().instabuild) {
-				refundLead(player, held);
-			}
-			level.playSound(null, pos, SoundEvents.LEAD_UNTIED, SoundSource.BLOCKS, 0.5f, 1.0f);
-			VpaNetworking.syncFenceLeads(player);
-			player.sendSystemMessage(Component.literal("Lead placement cancelled."), true);
+		// Grab/start suppress: ignore the same click that created pending. Later clicks on origin retie.
+		if (isConnectSuppressed(player, level)) {
 			return InteractionResult.SUCCESS_SERVER;
 		}
 
-		if (!withinRange(pending.pos(), pos)) {
-			data.clearPending(player.getUUID());
+		data.purgeInvalid(level, dimension);
+		List<BlockPos> placed = new ArrayList<>();
+		int leftover = 0;
+		for (BlockPos far : pending.farEnds()) {
+			if (far.equals(pos)) {
+				leftover++;
+				continue;
+			}
+			// Place in-range spans (origin is a valid dest); refund leftovers so a mixed bundle is never stuck.
+			if (!withinRange(pos, far)) {
+				leftover++;
+				continue;
+			}
+			data.addLink(new FenceLeadLink(dimension, pos, far));
+			placed.add(far);
+		}
+
+		data.clearPending(player.getUUID());
+		if (placed.isEmpty()) {
 			FenceLeadVisuals.clearPendingFor(player);
 			if (!player.getAbilities().instabuild) {
-				refundLead(player, held);
+				refundLeads(player, leftover);
 			}
 			level.playSound(null, pos, SoundEvents.LEAD_UNTIED, SoundSource.BLOCKS, 0.5f, 0.5f);
 			VpaNetworking.syncFenceLeads(player);
@@ -340,77 +408,40 @@ public final class FenceLeadHandler {
 			return InteractionResult.SUCCESS_SERVER;
 		}
 
-		BlockPos from = pending.pos();
-		data.purgeInvalid(level, dimension);
-		data.addLink(new FenceLeadLink(dimension, from, pos));
-		data.clearPending(player.getUUID());
-		FenceLeadVisuals.completePending(player, from, pos);
-
+		FenceLeadVisuals.completePending(player, pos, placed);
+		if (!player.getAbilities().instabuild && leftover > 0) {
+			refundLeads(player, leftover);
+		}
+		suppressConnect(player, level);
 		level.playSound(null, pos, SoundEvents.LEAD_TIED, SoundSource.BLOCKS, 1.0f, 0.9f);
 		VpaNetworking.syncFenceLeads(level);
-		player.sendSystemMessage(Component.literal("Lead connected."), true);
+		if (leftover > 0) {
+			player.sendSystemMessage(
+				Component.literal("Connected " + placed.size() + " lead" + (placed.size() == 1 ? "" : "s")
+					+ " — " + leftover + " out of range."),
+				true
+			);
+		} else if (placed.size() == 1) {
+			player.sendSystemMessage(Component.literal("Lead connected."), true);
+		} else {
+			player.sendSystemMessage(Component.literal("Connected " + placed.size() + " leads."), true);
+		}
 		return InteractionResult.SUCCESS_SERVER;
 	}
 
-	private static void refundLead(Player player, ItemStack held) {
-		if (held.isEmpty()) {
-			if (player.getMainHandItem().isEmpty()) {
-				player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.LEAD));
-			} else {
-				giveLeads(player, InteractionHand.MAIN_HAND, 1);
-			}
-			return;
-		}
-		if (held.is(Items.LEAD) && held.getCount() < held.getMaxStackSize()) {
-			held.grow(1);
-			return;
-		}
-		giveLeads(player, InteractionHand.MAIN_HAND, 1);
-	}
-
-	/** Return leads to the used/main hand or main inventory — never the off-hand. */
-	private static void giveLeads(Player player, InteractionHand preferHand, int count) {
+	/** Vanilla pickup insert. Leftover that does not fit is dropped. */
+	private static void refundLeads(Player player, int count) {
 		if (count <= 0) {
 			return;
 		}
-
-		count = mergeInto(player.getItemInHand(preferHand), count);
-		if (count > 0 && preferHand != InteractionHand.MAIN_HAND) {
-			count = mergeInto(player.getMainHandItem(), count);
-		}
-		// Hotbar + main storage only (0–35). Off-hand is slot 40.
-		for (int i = 0; i < 36 && count > 0; i++) {
-			count = mergeInto(player.getInventory().getItem(i), count);
-		}
-		if (count <= 0) {
-			return;
-		}
-
-		ItemStack prefer = player.getItemInHand(preferHand);
-		if (prefer.isEmpty()) {
-			player.setItemInHand(preferHand, new ItemStack(Items.LEAD, count));
-			return;
-		}
-		if (player.getMainHandItem().isEmpty()) {
-			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.LEAD, count));
-			return;
-		}
-		for (int i = 0; i < 36; i++) {
-			if (player.getInventory().getItem(i).isEmpty()) {
-				player.getInventory().setItem(i, new ItemStack(Items.LEAD, count));
-				return;
+		while (count > 0) {
+			int put = Math.min(new ItemStack(Items.LEAD).getMaxStackSize(), count);
+			ItemStack stack = new ItemStack(Items.LEAD, put);
+			if (!player.getInventory().add(stack)) {
+				player.drop(stack, false);
 			}
+			count -= put;
 		}
-		player.drop(new ItemStack(Items.LEAD, count), false);
-	}
-
-	private static int mergeInto(ItemStack stack, int count) {
-		if (count <= 0 || !stack.is(Items.LEAD) || stack.getCount() >= stack.getMaxStackSize()) {
-			return count;
-		}
-		int add = Math.min(stack.getMaxStackSize() - stack.getCount(), count);
-		stack.grow(add);
-		return count - add;
 	}
 
 	public static void onFenceBroken(
@@ -420,7 +451,7 @@ public final class FenceLeadHandler {
 		BlockState state,
 		BlockEntity blockEntity
 	) {
-		if (!(level instanceof ServerLevel serverLevel) || !state.is(BlockTags.FENCES)) {
+		if (!(level instanceof ServerLevel serverLevel)) {
 			return;
 		}
 
@@ -430,7 +461,7 @@ public final class FenceLeadHandler {
 		List<UUID> pendingOwners = new ArrayList<>();
 		for (var entry : data.pendingEntries()) {
 			FenceLeadSavedData.PendingLink pending = entry.getValue();
-			if (pending.dimension().equals(dimension) && pending.pos().equals(pos)) {
+			if (pending.dimension().equals(dimension) && pending.hasFarEnd(pos)) {
 				pendingOwners.add(entry.getKey());
 			}
 		}
@@ -443,22 +474,18 @@ public final class FenceLeadHandler {
 		}
 
 		int removed = data.removeLinksAt(dimension, pos);
+		int markers = FenceLeadVisuals.removeLinksAt(serverLevel, pos);
 		int leadCount = removed + pendingRemoved;
+		if (leadCount <= 0) {
+			leadCount = markers;
+		}
 		if (leadCount <= 0) {
 			return;
 		}
 
-		FenceLeadVisuals.removeLinksAt(serverLevel, pos);
 		FenceLeadVisuals.resync(serverLevel);
-
-		if (player != null && player.getAbilities().instabuild) {
-			// Creative still drops connected leads as world items at the broken post.
-			Block.popResource(serverLevel, pos, new ItemStack(Items.LEAD, leadCount));
-		} else if (player != null) {
-			giveLeads(player, InteractionHand.MAIN_HAND, leadCount);
-		} else {
-			Block.popResource(serverLevel, pos, new ItemStack(Items.LEAD, leadCount));
-		}
+		// Always spawn lead item entities at the post. Inventory merge hid/failed the refund.
+		Block.popResource(serverLevel, pos, new ItemStack(Items.LEAD, leadCount));
 		level.playSound(null, pos, SoundEvents.LEAD_UNTIED, SoundSource.BLOCKS, 1.0f, 1.0f);
 		VpaNetworking.syncFenceLeads(serverLevel);
 	}
@@ -474,5 +501,21 @@ public final class FenceLeadHandler {
 			Math.max(Math.abs(a.getX() - b.getX()), Math.abs(a.getY() - b.getY())),
 			Math.abs(a.getZ() - b.getZ())
 		) <= MAX_RANGE;
+	}
+
+	private static void suppressConnect(ServerPlayer player, ServerLevel level) {
+		connectSuppressUntil.put(player.getUUID(), level.getGameTime() + CONNECT_SUPPRESS_TICKS);
+	}
+
+	private static boolean isConnectSuppressed(ServerPlayer player, ServerLevel level) {
+		Long until = connectSuppressUntil.get(player.getUUID());
+		if (until == null) {
+			return false;
+		}
+		if (level.getGameTime() > until) {
+			connectSuppressUntil.remove(player.getUUID());
+			return false;
+		}
+		return true;
 	}
 }

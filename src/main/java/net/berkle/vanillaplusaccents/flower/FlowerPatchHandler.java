@@ -28,8 +28,9 @@ public final class FlowerPatchHandler {
 	}
 
 	/**
-	 * Server-side stacking during {@code BlockState.useItemOn}. Kept as a backup when the player is not sneaking;
-	 * sneaking skips {@code useItemOn} and goes straight to block-item placement.
+	 * Backup stacking during {@code BlockState.useItemOn}.
+	 * {@code BlockEvents.USE_ITEM_ON} is nullable: {@code null} leaves vanilla {@code useItemOn} alone;
+	 * any non-null value (including {@code PASS}) replaces it and skips the vanilla method.
 	 */
 	public static InteractionResult onUseItemOn(
 		ItemStack held,

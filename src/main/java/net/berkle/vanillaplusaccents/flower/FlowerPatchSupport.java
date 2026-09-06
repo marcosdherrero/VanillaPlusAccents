@@ -26,6 +26,10 @@ public final class FlowerPatchSupport {
 		return block == Blocks.RED_MUSHROOM || block == Blocks.BROWN_MUSHROOM;
 	}
 
+	public static boolean isWitherRose(Identifier flowerId) {
+		return BuiltInRegistries.BLOCK.getValue(flowerId) == Blocks.WITHER_ROSE;
+	}
+
 	public static boolean isEyeblossom(Block block) {
 		return block == Blocks.OPEN_EYEBLOSSOM || block == Blocks.CLOSED_EYEBLOSSOM;
 	}

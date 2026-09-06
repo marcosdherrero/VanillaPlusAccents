@@ -6,10 +6,12 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.SignBlock;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 
 import net.berkle.vanillaplusaccents.accessor.SignBlockEntityAccess;
+import net.berkle.vanillaplusaccents.sign.SignSupport;
 
 @Mixin(SignBlock.class)
 public abstract class SignBlockMixin {
@@ -17,6 +19,11 @@ public abstract class SignBlockMixin {
 	@Inject(method = "openTextEdit", at = @At("HEAD"), cancellable = true)
 	private void vpa$blockTextEditWhenItemDisplayed(Player player, SignBlockEntity sign, boolean front, CallbackInfo ci) {
 		if (((SignBlockEntityAccess) sign).vpa$hasDisplayedItem(front)) {
+			ci.cancel();
+			return;
+		}
+		ItemStack held = player.getMainHandItem();
+		if (!held.isEmpty() && !SignSupport.isSignTextTool(held) && SignSupport.isEmptySign(sign)) {
 			ci.cancel();
 		}
 	}

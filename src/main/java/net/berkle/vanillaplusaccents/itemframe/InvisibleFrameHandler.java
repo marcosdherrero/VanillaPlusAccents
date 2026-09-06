@@ -13,7 +13,7 @@ import net.minecraft.world.phys.EntityHitResult;
 
 import net.berkle.vanillaplusaccents.accessor.ItemFrameEntityAccess;
 
-/** Shears toggle item frame backing visibility. */
+/** Sneak + shears toggles item frame backing visibility. */
 public final class InvisibleFrameHandler {
 
 	private InvisibleFrameHandler() {
@@ -26,13 +26,20 @@ public final class InvisibleFrameHandler {
 		net.minecraft.world.entity.Entity entity,
 		EntityHitResult hitResult
 	) {
-		if (!(level instanceof ServerLevel) || hand != InteractionHand.MAIN_HAND) {
+		if (hand != InteractionHand.MAIN_HAND) {
 			return InteractionResult.PASS;
 		}
 		if (!(entity instanceof ItemFrame frame)) {
 			return InteractionResult.PASS;
 		}
-		if (!player.getItemInHand(hand).is(Items.SHEARS)) {
+		if (!player.getItemInHand(hand).is(Items.SHEARS) || !player.isShiftKeyDown()) {
+			return InteractionResult.PASS;
+		}
+
+		if (level.isClientSide()) {
+			return InteractionResult.SUCCESS;
+		}
+		if (!(level instanceof ServerLevel)) {
 			return InteractionResult.PASS;
 		}
 

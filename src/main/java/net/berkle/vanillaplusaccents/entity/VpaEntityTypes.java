@@ -42,7 +42,6 @@ public final class VpaEntityTypes {
 			FENCE_LEAD_ID,
 			EntityType.Builder.<FenceLeadEntity>of(FenceLeadEntity::new, MobCategory.MISC)
 				.sized(0.5f, 0.5f)
-				.noSave()
 				.clientTrackingRange(64)
 				.updateInterval(10)
 				.build(FENCE_LEAD_KEY)
