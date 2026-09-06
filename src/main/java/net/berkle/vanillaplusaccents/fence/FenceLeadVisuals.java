@@ -92,25 +92,6 @@ public final class FenceLeadVisuals {
 		discardUnusedKnots(level);
 	}
 
-	/** Spawn missing markers/knots for saved links that touch this chunk. */
-	public static void ensureLinksInChunk(ServerLevel level, ChunkPos chunkPos) {
-		Identifier dimension = level.dimension().identifier();
-		for (FenceLeadLink link : FenceLeadSavedData.get(level).linksFor(dimension)) {
-			boolean fromHere = inChunk(chunkPos, link.from());
-			boolean toHere = inChunk(chunkPos, link.to());
-			if (!fromHere && !toHere) {
-				continue;
-			}
-			ensureKnotsIfLoaded(level, link.from(), link.to());
-			if (!isChunkLoaded(level, link.from()) || !isChunkLoaded(level, link.to())) {
-				continue;
-			}
-			if (!hasCompletedMarker(level, link)) {
-				spawnLink(level, link);
-			}
-		}
-	}
-
 	/** True when SavedData still needs a visible knot on this post. */
 	public static boolean isKnotNeeded(ServerLevel level, BlockPos pos) {
 		return isEndpointUsed(level, pos);

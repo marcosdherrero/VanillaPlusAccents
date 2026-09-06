@@ -11,9 +11,6 @@ import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-
-import net.berkle.vanillaplusaccents.client.render.state.FenceLeadRenderState;
 import net.berkle.vanillaplusaccents.entity.VpaEntityTypes;
 import net.berkle.vanillaplusaccents.fence.FenceLeadEntity;
 
@@ -22,7 +19,7 @@ import net.berkle.vanillaplusaccents.fence.FenceLeadEntity;
  * from the Leashable holder (pending → player, completed → dest knot) and
  * {@link EntityRenderer#submit} calls {@code submitLeash} — same mesh as a pig on a knot.
  */
-public final class FenceLeadEntityRenderer extends EntityRenderer<FenceLeadEntity, FenceLeadRenderState> {
+public final class FenceLeadEntityRenderer extends EntityRenderer<FenceLeadEntity, EntityRenderState> {
 
 	public FenceLeadEntityRenderer(EntityRendererProvider.Context context) {
 		super(context);
@@ -68,34 +65,7 @@ public final class FenceLeadEntityRenderer extends EntityRenderer<FenceLeadEntit
 	 * like a pig lead. Does not touch mob renderers.
 	 */
 	@Override
-	protected AABB getBoundingBoxForCulling(FenceLeadEntity entity) {
-		if (!entity.isPrimaryCompleted()) {
-			return super.getBoundingBoxForCulling(entity);
-		}
-		return new AABB(
-			FenceLeadEntity.attachPoint(entity.getFrom()),
-			FenceLeadEntity.attachPoint(entity.getTo().orElse(entity.getFrom()))
-		).inflate(0.5);
-	}
-
-	@Override
-	public boolean shouldRender(FenceLeadEntity entity, Frustum frustum, double camX, double camY, double camZ) {
-		if (!entity.shouldRender(camX, camY, camZ)) {
-			return false;
-		}
-		if (entity.isPending() || entity.isPrimaryCompleted()) {
-			return true;
-		}
-		return super.shouldRender(entity, frustum, camX, camY, camZ);
-	}
-
-	@Override
-	public FenceLeadRenderState createRenderState() {
-		return new FenceLeadRenderState();
-	}
-
-	@Override
-	public void extractRenderState(FenceLeadEntity entity, FenceLeadRenderState state, float partialTick) {
+	public void extractRenderState(FenceLeadEntity entity, EntityRenderState state, float partialTick) {
 		super.extractRenderState(entity, state, partialTick);
 		List<EntityRenderState.LeashState> leashes = state.leashStates;
 		if (leashes == null || leashes.isEmpty()) {
@@ -149,26 +119,6 @@ public final class FenceLeadEntityRenderer extends EntityRenderer<FenceLeadEntit
 		leash.endSkyLight = second.startSkyLight;
 		leash.slack = true;
 		leashes.add(second);
-	}
-
-	@Override
-	public void submit(
-		FenceLeadRenderState state,
-		PoseStack poseStack,
-		SubmitNodeCollector submitNodeCollector,
-		CameraRenderState cameraRenderState
-	) {
-		if (state.completed && Minecraft.getInstance().level instanceof ClientLevel level) {
-			FenceLeadRender.submitCompleted(
-				level,
-				poseStack,
-				submitNodeCollector,
-				new Vec3(state.x, state.y, state.z),
-				state.start,
-				state.end
-			);
-		}
-		super.submit(state, poseStack, submitNodeCollector, cameraRenderState);
 	}
 
 	public static void register() {
