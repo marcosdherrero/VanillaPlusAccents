@@ -26,6 +26,10 @@ Sneak + shear an item frame to hide the wooden backing (sneak + shear again to s
 
 ![Item frames, signs with items, and fence posts](docs/images/item-frames-and-signs.png)
 
+![Oak log on a hanging sign and wither rose on a wall sign, both flush to the face](docs/images/sign-items-flush.png)
+
+![Wither rose flush on a hanging sign](docs/images/hanging-sign-item-flush.png)
+
 ### Fence-to-fence leads
 
 Connect fences with leads for decorative rope lines. Completed spans use the same vanilla leash look and sag as an animal on a knot, attach about **55%** up the post, and stay saved across save/rejoin:
@@ -101,7 +105,7 @@ Relative fly speed while a player is controlling a Happy Ghast (`1.0` = vanilla)
 
 Omit the value to show the current setting.
 
-### Stonecutter woodcutting
+### Wood / stone cutter
 
 The stonecutter also acts as a woodcutter for **vanilla and most modded woods**. Same-family only. From **1 log / wood / stripped**:
 
@@ -182,6 +186,10 @@ Copy-Item build\libs\vanillaplusaccents-1.0.7-Minecraft26.2.jar jars\ -Force
 ## Development
 
 - **Woodcutting:** recipes are generated in code (`WoodcuttingRecipes`) from item-id conventions when the recipe manager reloads — no per-wood JSON required.
+
+## Changelog
+
+What changed in 1.0.1–1.0.6 (fence-lead visibility, flush signs, flower spacing, hitching/catenaries, woodcutting, the 26.2 port) is in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

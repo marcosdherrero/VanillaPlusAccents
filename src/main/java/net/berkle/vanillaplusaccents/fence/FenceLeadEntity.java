@@ -261,6 +261,14 @@ public class FenceLeadEntity extends Entity implements Leashable {
 		return distance < 96.0 * 96.0;
 	}
 
+	/** True when this marker will submit a completed span (DATA_TO present, in range, not culled). */
+	public boolean isDrawingCompleted(Vec3 cameraPos) {
+		if (!isPrimaryCompleted() || isRemoved()) {
+			return false;
+		}
+		return shouldRenderAtSqrDistance(distanceToSqr(cameraPos));
+	}
+
 	@Override
 	public boolean isPickable() {
 		return false;
@@ -301,6 +309,11 @@ public class FenceLeadEntity extends Entity implements Leashable {
 	@Override
 	public void tick() {
 		if (releasing || isRemoved() || level().isClientSide() || !(level() instanceof ServerLevel serverLevel)) {
+			return;
+		}
+
+		if (isPending() && getOwnerUuid().isEmpty()) {
+			discard();
 			return;
 		}
 

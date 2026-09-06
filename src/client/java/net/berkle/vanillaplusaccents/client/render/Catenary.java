@@ -9,7 +9,7 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class Catenary {
 
-	public static final int SEGMENTS = 8;
+	public static final int SEGMENTS = 24;
 	public static final int POINTS = SEGMENTS + 1;
 
 	/** Smallest extra length beyond the chord so the solver stays valid. */
