@@ -3,6 +3,7 @@
 	"package": "net.berkle.vanillaplusaccents.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
+		"BlockAttachedEntityMixin",
 		"BlockEntityMixin",
 		"ItemFrameEntityMixin",
 		"SignBlockEntityMixin",

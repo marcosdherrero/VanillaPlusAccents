@@ -48,8 +48,8 @@ public final class FenceLeadSavedData extends SavedData {
 
 	private final List<FenceLeadLink> links = new ArrayList<>();
 	private final Map<UUID, PendingLink> pending = new HashMap<>();
-	/** Live pending rope entity id per player — not serialized. */
-	private final Map<UUID, UUID> pendingEntities = new HashMap<>();
+	/** Live pending rope entity ids per player — not serialized. */
+	private final Map<UUID, List<UUID>> pendingEntities = new HashMap<>();
 
 	private FenceLeadSavedData() {
 	}
@@ -74,6 +74,12 @@ public final class FenceLeadSavedData extends SavedData {
 
 	public List<FenceLeadLink> linksFor(Identifier dimension) {
 		return links.stream().filter(link -> link.dimension().equals(dimension)).toList();
+	}
+
+	public List<FenceLeadLink> linksAt(Identifier dimension, BlockPos pos) {
+		return links.stream()
+			.filter(link -> link.dimension().equals(dimension) && link.involves(pos))
+			.toList();
 	}
 
 	public void addLink(FenceLeadLink link) {
@@ -143,38 +149,63 @@ public final class FenceLeadSavedData extends SavedData {
 		return pending.get(playerId);
 	}
 
-	public void setPending(UUID playerId, Identifier dimension, BlockPos pos) {
-		pending.put(playerId, new PendingLink(dimension, pos));
+	/** Lead-in-hand: one free end stays on {@code origin}. */
+	public void setPending(UUID playerId, Identifier dimension, BlockPos origin) {
+		setPending(playerId, dimension, origin, List.of(origin.immutable()));
+	}
+
+	/**
+	 * {@code origin} is the grabbed hub or lead-in-hand start (valid retie dest, not cancel).
+	 * {@code farEnds} are the posts that still hold knots — remaining = that list size.
+	 */
+	public void setPending(UUID playerId, Identifier dimension, BlockPos origin, List<BlockPos> farEnds) {
+		List<BlockPos> unique = new ArrayList<>();
+		for (BlockPos far : farEnds) {
+			BlockPos immutable = far.immutable();
+			if (!unique.contains(immutable)) {
+				unique.add(immutable);
+			}
+		}
+		if (unique.isEmpty()) {
+			unique.add(origin.immutable());
+		}
+		pending.put(playerId, new PendingLink(dimension, origin.immutable(), unique));
 	}
 
 	public void clearPending(UUID playerId) {
 		pending.remove(playerId);
 	}
 
-	/** Cancel any in-progress anchors on this post (e.g. fence broken). Returns count cleared. */
+	/** Cancel in-progress anchors whose free end is on this post. Returns remaining paid leads. */
 	public int clearPendingAt(Identifier dimension, BlockPos pos) {
-		int cleared = 0;
+		int leads = 0;
 		for (Iterator<Map.Entry<UUID, PendingLink>> iterator = pending.entrySet().iterator(); iterator.hasNext();) {
 			Map.Entry<UUID, PendingLink> entry = iterator.next();
 			PendingLink link = entry.getValue();
-			if (link.dimension().equals(dimension) && link.pos().equals(pos)) {
+			if (link.dimension().equals(dimension) && link.hasFarEnd(pos)) {
+				leads += Math.max(1, link.remaining());
 				iterator.remove();
 				pendingEntities.remove(entry.getKey());
-				cleared++;
 			}
 		}
-		if (cleared > 0) {
+		if (leads > 0) {
 			setDirty();
 		}
-		return cleared;
+		return leads;
 	}
 
-	public void setPendingEntity(UUID playerId, UUID entityId) {
-		pendingEntities.put(playerId, entityId);
+	public void setPendingEntities(UUID playerId, List<UUID> entityIds) {
+		pendingEntities.put(playerId, new ArrayList<>(entityIds));
 	}
 
 	public UUID clearPendingEntity(UUID playerId) {
-		return pendingEntities.remove(playerId);
+		List<UUID> ids = clearPendingEntities(playerId);
+		return ids.isEmpty() ? null : ids.getFirst();
+	}
+
+	public List<UUID> clearPendingEntities(UUID playerId) {
+		List<UUID> ids = pendingEntities.remove(playerId);
+		return ids == null ? List.of() : List.copyOf(ids);
 	}
 
 	/** Live pending anchors (not serialized). Used so endpoint checks keep knots alive. */
@@ -182,6 +213,33 @@ public final class FenceLeadSavedData extends SavedData {
 		return pending.entrySet();
 	}
 
-	public record PendingLink(Identifier dimension, BlockPos pos) {
+	/**
+	 * Ephemeral regrab / lead-in-hand state. Not serialized.
+	 *
+	 * @param origin  grabbed hub A or lead-in-hand start (valid retie dest)
+	 * @param farEnds posts that still hold the other ends (B/C/D). {@link #remaining()} is this size
+	 */
+	public record PendingLink(Identifier dimension, BlockPos origin, List<BlockPos> farEnds) {
+		public PendingLink {
+			origin = origin.immutable();
+			farEnds = List.copyOf(farEnds.stream().map(BlockPos::immutable).toList());
+		}
+
+		public BlockPos pos() {
+			return origin;
+		}
+
+		public int remaining() {
+			return farEnds.size();
+		}
+
+		public boolean hasFarEnd(BlockPos pos) {
+			for (BlockPos far : farEnds) {
+				if (far.equals(pos)) {
+					return true;
+				}
+			}
+			return false;
+		}
 	}
 }

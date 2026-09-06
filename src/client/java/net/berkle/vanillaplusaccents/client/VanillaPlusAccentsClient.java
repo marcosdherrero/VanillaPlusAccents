@@ -6,7 +6,6 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
 import net.berkle.vanillaplusaccents.client.render.FenceLeadClientCache;
 import net.berkle.vanillaplusaccents.client.render.FenceLeadEntityRenderer;
-import net.berkle.vanillaplusaccents.client.render.FenceLeadWorldRenderer;
 import net.berkle.vanillaplusaccents.client.render.FlowerPatchBlockEntityRenderer;
 import net.berkle.vanillaplusaccents.client.render.FlowerPatchClientCache;
 import net.berkle.vanillaplusaccents.client.render.SeatEntityRenderer;
@@ -21,7 +20,6 @@ public class VanillaPlusAccentsClient implements ClientModInitializer {
 		FlowerPatchBlockEntityRenderer.register();
 		SeatEntityRenderer.register();
 		FenceLeadEntityRenderer.register();
-		FenceLeadWorldRenderer.register();
 
 		ClientPlayNetworking.registerGlobalReceiver(SyncFenceLeadsPayload.TYPE, (payload, context) ->
 			context.client().execute(() -> {

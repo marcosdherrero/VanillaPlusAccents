@@ -1,28 +1,23 @@
 package net.berkle.vanillaplusaccents.client.render;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import net.berkle.vanillaplusaccents.entity.VpaEntityTypes;
 import net.berkle.vanillaplusaccents.fence.FenceLeadEntity;
 
 /**
- * No model. Builds {@code leashStates} from synched endpoints so completed ropes
- * render even when the vanilla leash-holder link packet is missing/late.
- * Completed fence-to-fence spans use a catenary; pending player ropes stay vanilla.
+ * No model. Vanilla {@link EntityRenderer#extractRenderState} fills {@code leashStates}
+ * from the Leashable holder (pending → player, completed → dest knot) and
+ * {@link EntityRenderer#submit} calls {@code submitLeash} — same mesh as a pig on a knot.
  */
 public final class FenceLeadEntityRenderer extends EntityRenderer<FenceLeadEntity, EntityRenderState> {
 
@@ -32,49 +27,98 @@ public final class FenceLeadEntityRenderer extends EntityRenderer<FenceLeadEntit
 	}
 
 	@Override
+	protected boolean affectedByCulling(FenceLeadEntity entity) {
+		return false;
+	}
+
+	@Override
+	protected AABB getBoundingBoxForCulling(FenceLeadEntity entity) {
+		if (!entity.isPrimaryCompleted()) {
+			return super.getBoundingBoxForCulling(entity);
+		}
+		return new AABB(
+			FenceLeadEntity.attachPoint(entity.getFrom()),
+			FenceLeadEntity.attachPoint(entity.getTo().orElse(entity.getFrom()))
+		).inflate(0.5);
+	}
+
+	@Override
+	public boolean shouldRender(FenceLeadEntity entity, Frustum frustum, double camX, double camY, double camZ) {
+		if (!entity.shouldRender(camX, camY, camZ)) {
+			return false;
+		}
+		if (entity.isPending() || entity.isPrimaryCompleted()) {
+			return true;
+		}
+		return super.shouldRender(entity, frustum, camX, camY, camZ);
+	}
+
+	@Override
 	public EntityRenderState createRenderState() {
 		return new EntityRenderState();
 	}
 
+	/**
+	 * Vanilla {@code LeashState} defaults slack to true, but same-Y chords have
+	 * {@code dy == 0} so {@code submitLeash} still draws a straight line. Force
+	 * slack and, for level fence spans, dip a midpoint so the striped mesh droops
+	 * like a pig lead. Does not touch mob renderers.
+	 */
 	@Override
 	public void extractRenderState(FenceLeadEntity entity, EntityRenderState state, float partialTick) {
 		super.extractRenderState(entity, state, partialTick);
-
-		Optional<BlockPos> to = entity.getTo();
-		Vec3 start = FenceLeadEntity.attachPoint(entity.getFrom());
-		Vec3 origin = entity.getPosition(partialTick);
-		if (!(entity.level() instanceof ClientLevel clientLevel)) {
-			state.leashStates = null;
+		List<EntityRenderState.LeashState> leashes = state.leashStates;
+		if (leashes == null || leashes.isEmpty()) {
 			return;
 		}
-		if (to.isPresent()) {
-			List<EntityRenderState.LeashState> states = new ArrayList<>(Catenary.SEGMENTS);
-			FenceLeadRender.fillCompletedStates(
-				clientLevel,
-				start,
-				FenceLeadEntity.attachPoint(to.get()),
-				origin,
-				states
-			);
-			state.leashStates = states;
+		for (EntityRenderState.LeashState leash : leashes) {
+			leash.slack = true;
+		}
+		if (!entity.isPrimaryCompleted() && !entity.isPending()) {
 			return;
 		}
-
-		Optional<UUID> owner = entity.getOwnerUuid();
-		Player player = Minecraft.getInstance().player;
-		if (owner.isEmpty() || player == null || !player.getUUID().equals(owner.get())) {
-			state.leashStates = null;
+		if (leashes.size() != 1) {
 			return;
 		}
+		applySameYSlack(entity, leashes.getFirst(), leashes);
+	}
 
-		List<EntityRenderState.LeashState> states = new ArrayList<>(1);
-		states.add(FenceLeadRender.pendingState(
-			clientLevel,
-			start,
-			player.getRopeHoldPosition(partialTick),
-			origin
-		));
-		state.leashStates = states;
+	private static void applySameYSlack(
+		FenceLeadEntity entity,
+		EntityRenderState.LeashState leash,
+		List<EntityRenderState.LeashState> leashes
+	) {
+		double dy = leash.end.y - leash.start.y;
+		if (Math.abs(dy) > 0.05) {
+			return;
+		}
+		double dx = leash.end.x - leash.start.x;
+		double dz = leash.end.z - leash.start.z;
+		double horizontal = Math.sqrt(dx * dx + dz * dz);
+		if (horizontal < 0.25) {
+			return;
+		}
+		double sag = Math.min(0.42, 0.10 + horizontal * 0.06);
+		Vec3 mid = new Vec3(
+			(leash.start.x + leash.end.x) * 0.5,
+			(leash.start.y + leash.end.y) * 0.5 - sag,
+			(leash.start.z + leash.end.z) * 0.5
+		);
+		EntityRenderState.LeashState second = new EntityRenderState.LeashState();
+		second.offset = mid.subtract(entity.position());
+		second.start = mid;
+		second.end = leash.end;
+		second.startBlockLight = (leash.startBlockLight + leash.endBlockLight) / 2;
+		second.endBlockLight = leash.endBlockLight;
+		second.startSkyLight = (leash.startSkyLight + leash.endSkyLight) / 2;
+		second.endSkyLight = leash.endSkyLight;
+		second.slack = true;
+
+		leash.end = mid;
+		leash.endBlockLight = second.startBlockLight;
+		leash.endSkyLight = second.startSkyLight;
+		leash.slack = true;
+		leashes.add(second);
 	}
 
 	public static void register() {

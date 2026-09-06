@@ -12,4 +12,9 @@ public record FenceLeadLink(
 	public boolean involves(BlockPos pos) {
 		return from.equals(pos) || to.equals(pos);
 	}
+
+	/** The end that is not {@code pos}. Callers must pass an involved post. */
+	public BlockPos other(BlockPos pos) {
+		return from.equals(pos) ? to : from;
+	}
 }

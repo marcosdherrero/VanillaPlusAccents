@@ -16,7 +16,7 @@ public abstract class ItemFrameRendererMixin {
 
 	@Inject(method = "extractRenderState", at = @At("TAIL"))
 	private void vpa$extractInvisible(ItemFrame entity, ItemFrameRenderState state, float partialTick, CallbackInfo ci) {
-		if (((ItemFrameEntityAccess) entity).vpa$isFrameInvisible()) {
+		if (entity.isInvisible() || ((ItemFrameEntityAccess) entity).vpa$isFrameInvisible()) {
 			state.frameModel.clear();
 		}
 	}

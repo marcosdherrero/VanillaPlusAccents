@@ -97,7 +97,11 @@ public class FlowerPatchBlock extends VegetationBlock implements EntityBlock, Bo
 		if (!(blockEntity instanceof FlowerPatchBlockEntity patch)) {
 			return false;
 		}
-		return patch.getCount() < 4;
+		if (patch.getCount() < 4) {
+			return true;
+		}
+		// Full wither-rose patches cannot be duplicated with bonemeal.
+		return !FlowerPatchSupport.isWitherRose(patch.getFlowerId());
 	}
 
 	@Override
@@ -107,7 +111,10 @@ public class FlowerPatchBlock extends VegetationBlock implements EntityBlock, Bo
 
 	@Override
 	public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state) {
-		FlowerPatchOperations.growPatch(level, pos);
+		if (FlowerPatchOperations.growPatch(level, pos)) {
+			return;
+		}
+		FlowerPatchOperations.dropBonemealExtra(level, pos);
 	}
 
 	/** Keep stored eyeblossom ids in sync with day/night open-close, like single flowers. */

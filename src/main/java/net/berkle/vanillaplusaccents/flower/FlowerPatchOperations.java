@@ -1,11 +1,13 @@
 package net.berkle.vanillaplusaccents.flower;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -61,6 +63,26 @@ public final class FlowerPatchOperations {
 		}
 		patch.configure(patch.getFlowerId(), patch.getCount() + 1, false);
 		FlowerPatchSync.syncChange(level, pos, level.getBlockState(pos), patch, null);
+		return true;
+	}
+
+	/**
+	 * Full patches (4) bonemeal like pink petals: drop one extra flower item.
+	 * Wither roses are excluded by {@link FlowerPatchBlock#isValidBonemealTarget}.
+	 */
+	public static boolean dropBonemealExtra(ServerLevel level, BlockPos pos) {
+		BlockEntity blockEntity = level.getBlockEntity(pos);
+		if (!(blockEntity instanceof FlowerPatchBlockEntity patch) || patch.getCount() < 4) {
+			return false;
+		}
+		if (FlowerPatchSupport.isWitherRose(patch.getFlowerId())) {
+			return false;
+		}
+		Block flower = BuiltInRegistries.BLOCK.getValue(patch.getFlowerId());
+		if (flower == null || !FlowerPatchSupport.canStackInPatch(flower)) {
+			return false;
+		}
+		Block.popResource(level, pos, new ItemStack(flower));
 		return true;
 	}
 
