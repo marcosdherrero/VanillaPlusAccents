@@ -8,8 +8,9 @@ Small vanilla-friendly quality-of-life accents for Minecraft **Java Edition 26.2
 
 ![Flower patches and seating by the water](docs/images/flower-patches-and-seating.png)
 
-## 1.0.7
+## 1.0.10
 
+- Bonemealing grass grows that biome's usual flowers (including when packs like Geophilic replace vanilla vegetation). Flower patches are unchanged.
 - Fence-to-fence leads persist across save/rejoin, use the vanilla leash look and sag, and attach about **55%** up the post.
 - Empty-hand **regrab** on a hub takes this end of every spoke; far posts stay. One dest click reties the bundle. Clicking the original hub reties rather than refunds. Spans that are too far refund leftover leads through vanilla `inventory.add`.
 - Breaking a linked fence drops its leads.
@@ -55,7 +56,7 @@ A fence can hold many links. New ropes only start when you click with a lead aga
 
 ### Flower patches
 
-Stack matching small flowers or mushrooms up to **4 per block** with natural askew placement. Bonemeal a single plant to start a patch of 2. Bonemeal a full patch of 4 drops one extra flower item, like pink petals. **Wither rose** patches do not duplicate from bonemeal.
+Stack matching small flowers or mushrooms up to **4 per block** with natural askew placement. Bonemeal a single plant to start a patch of 2. Bonemeal a full patch of 4 drops one extra flower item, like pink petals. **Wither rose** patches do not duplicate from bonemeal. Bonemealing **grass** uses the biome flower pool (vanilla or Geophilic) and never places VPA patches.
 
 ![Flower patches, seating, and fence leads](docs/images/accents-overview.png)
 
@@ -167,7 +168,7 @@ All operator settings are world-wide (shared across dimensions via overworld Sav
 2. Drop [Fabric API](https://modrinth.com/mod/fabric-api) into your `mods` folder
 3. Drop the release jar from [`jars/`](jars/) into `mods`
 
-Current release: [`jars/vanillaplusaccents-1.0.7-Minecraft26.2.jar`](jars/vanillaplusaccents-1.0.7-Minecraft26.2.jar)
+Current release: [`jars/vanillaplusaccents-1.0.10-Minecraft26.2.jar`](jars/vanillaplusaccents-1.0.10-Minecraft26.2.jar)
 
 ## Build
 
@@ -175,12 +176,12 @@ Current release: [`jars/vanillaplusaccents-1.0.7-Minecraft26.2.jar`](jars/vanill
 ./gradlew build
 ```
 
-Output: `build/libs/vanillaplusaccents-1.0.7-Minecraft26.2.jar`
+Output: `build/libs/vanillaplusaccents-1.0.10-Minecraft26.2.jar`
 
 Copy a release into `jars/` when publishing:
 
 ```powershell
-Copy-Item build\libs\vanillaplusaccents-1.0.7-Minecraft26.2.jar jars\ -Force
+Copy-Item build\libs\vanillaplusaccents-1.0.10-Minecraft26.2.jar jars\ -Force
 ```
 
 ## Development

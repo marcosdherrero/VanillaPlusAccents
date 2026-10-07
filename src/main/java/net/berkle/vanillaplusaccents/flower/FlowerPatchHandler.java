@@ -41,7 +41,7 @@ public final class FlowerPatchHandler {
 		InteractionHand hand,
 		BlockHitResult hitResult
 	) {
-		if (level.isClientSide()) {
+		if (level.isClientSide() || held.is(Items.BONE_MEAL)) {
 			return null;
 		}
 
@@ -60,6 +60,12 @@ public final class FlowerPatchHandler {
 	) {
 		ItemStack held = player.getItemInHand(hand);
 		if (held.is(Items.BONE_MEAL)) {
+			BlockState targetState = level.getBlockState(hitResult.getBlockPos());
+			// Grass / nylium / crops / patches use vanilla BoneMealItem. Only intercept a
+			// single small flower or mushroom so bonemeal can start a 2-stem patch.
+			if (targetState.is(VpaBlocks.FLOWER_PATCH) || !isConvertibleSinglePlant(targetState)) {
+				return InteractionResult.PASS;
+			}
 			return onBonemeal(player, level, hitResult, held);
 		}
 

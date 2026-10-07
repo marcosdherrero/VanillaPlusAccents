@@ -1,8 +1,8 @@
 # Changelog
 
-Newest first. Jars look like `vanillaplusaccents-1.0.7-Minecraft26.2.jar`. GitHub tags look like `v1.0.7-mc26.2`.
+Newest first. Jars look like `vanillaplusaccents-1.0.10-Minecraft26.2.jar`. GitHub tags look like `v1.0.10-mc26.2`.
 
-**1.0.7** is the current 26.2 patch. **1.0.5** is the matching feature release on 26.1.2 (`v1.0.5-mc26.1.2`). Do not mix the two Minecraft jars.
+**1.0.10** is the current 26.2 patch. **1.0.8** is the matching feature release on 26.1.2 (`v1.0.8-mc26.1.2`). Do not mix the two Minecraft jars.
 
 ## Minecraft version notes
 
@@ -11,7 +11,7 @@ Vanilla Plus Accents started on **Minecraft 26.1.2** (official Mojang names, Jav
 **For players / pack makers:**
 
 - Use the jar whose Minecraft number matches the instance.
-- **1.0.7 is 26.2 only.** On 26.1.2 the matching feature build is **1.0.5** (after 1.0.4).
+- **1.0.10 is 26.2 only.** On 26.1.2 the matching feature build is **1.0.8**.
 - 26.2 needed extra renderer work so sign items stay flush, flower stems stay spaced, and fence ropes match animal-lead rib spacing. Gameplay commands and recipes stay the same idea as 26.1.2.
 
 **For developers (code / API):**
@@ -24,6 +24,28 @@ Vanilla Plus Accents started on **Minecraft 26.1.2** (official Mojang names, Jav
 ---
 
 ## Mod versions
+
+### 1.0.10 (Minecraft 26.2)
+
+GitHub: [v1.0.10-mc26.2](https://github.com/marcosdherrero/VanillaPlusAccents/releases/tag/v1.0.10-mc26.2) · jar `vanillaplusaccents-1.0.10-Minecraft26.2.jar`
+
+Matching feature build on 26.1.2 is **1.0.8**.
+
+**For players:**
+
+- Bonemealing grass grows that biome's usual flowers, including when worldgen packs such as Geophilic replace vanilla vegetation so vanilla's bone-meal flower list is empty.
+- Flower patches are unchanged: bonemeal a single plant to start a patch; a full patch of 4 still drops an extra flower except wither rose.
+
+**For developers:**
+
+- `GrassBlockBonemealMixin` runs after vanilla `performBonemeal`. `GrassBonemealFeatures` recovers tagged ∩ placed features, then flower-like biome vegetation, then vanilla flower keys for that biome id, and places single plants — never VPA patches.
+- `FlowerPatchHandler` lets vanilla `BoneMealItem` handle grass / nylium / crops / existing patches; it only intercepts a convertible single small plant.
+
+### 1.0.8 (Minecraft 26.1.2)
+
+GitHub: [v1.0.8-mc26.1.2](https://github.com/marcosdherrero/VanillaPlusAccents/releases/tag/v1.0.8-mc26.1.2) · jar `vanillaplusaccents-1.0.8-Minecraft26.1.2.jar`
+
+Same grass bone-meal flower recovery as **1.0.10 on 26.2**. Flower patches unchanged.
 
 ### 1.0.7 (Minecraft 26.2)
 
